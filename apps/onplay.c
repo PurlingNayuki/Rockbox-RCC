@@ -64,6 +64,7 @@
 #include "viewport.h"
 #include "filefuncs.h"
 #include "time.h"
+#include "plugin.h"
 
 static int context;
 static char* selected_file = NULL;
@@ -1218,6 +1219,11 @@ static bool open_with(void)
     return list_viewers();
 }
 
+static int load_lyrics(void)
+{
+    return GO_TO_LYRICS;
+}
+
 static int playlist_insert_shuffled(void)
 {
     if ((audio_status() & AUDIO_STATUS_PLAY) ||
@@ -1273,7 +1279,7 @@ static struct hotkey_assignment hotkey_items[] = {
             ONPLAY_PICTUREFLOW },
 #endif
     { HOTKEY_LYRICS, LANG_ONPLAY_LYRICS,
-            HOTKEY_FUNC(NULL, NULL),
+            HOTKEY_FUNC(load_lyrics, NULL),
             ONPLAY_LYRICS },
     { HOTKEY_SLEEP_TIMER, LANG_SLEEP_TIMER,
             HOTKEY_FUNC(NULL, NULL),
