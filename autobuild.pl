@@ -28,7 +28,7 @@ print "Rockbox Rev: $rev\n\n" if($verbose);
 
 # made once for all targets
 sub runone {
-    my ($dir, $confnum, $extra)=@_;
+    my ($name, $dir, $confnum, $extra)=@_;
     my $a;
 
     if($doonly && ($doonly ne $dir)) {
@@ -37,7 +37,8 @@ sub runone {
 
     mkdir "build-$dir";
     chdir "build-$dir";
-    print "\nBuilding in build-$dir" if($verbose);
+    print "\nCompiling $name...\n" if($verbose);
+    print "Building in build-$dir\n" if($verbose);
 
     $a = buildit($dir, $confnum, $extra);
 
@@ -65,7 +66,6 @@ sub buildit {
     my $ram = $extra ? $extra : -1;
     my $c = "../tools/configure --type=n --target=$confnum --ram=$ram";
 
-    print "\nCompiling $target...\n" if($verbose);
     print "C: $c\n" if($verbose);
     `$c`;
 
@@ -84,7 +84,8 @@ print "cd tools && make\n" if($verbose);
 `(cd tools && make -j) >/dev/null` if(!$mutilcore);
 
 for my $b (&usablebuilds) {
+    my $targetname = $builds{$b}{name};
     my $configname = $builds{$b}{configname} ? $builds{$b}{configname} : $b;
-    runone($b, $configname, $builds{$b}{ram});
+    runone($targetname, $b, $configname, $builds{$b}{ram});
 }
 
