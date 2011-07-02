@@ -1152,7 +1152,8 @@ MAKE_ONPLAYMENU( wps_onplay_menu, ID2P(LANG_ONPLAY_MENU_TITLE),
            &pictureflow_item,
 #endif           
            &lyrics_item,
-		   &browse_id3_item, &list_viewers_item,
+           &browse_id3_item,
+           &list_viewers_item,
            &sleep_timer_call,
            &delete_file_item, &view_cue_item,
 #ifdef HAVE_PITCHSCREEN
