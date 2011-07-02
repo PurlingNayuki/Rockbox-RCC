@@ -1,7 +1,7 @@
-$publicrelease="3.8.1";
-$manualrelease="3.8.1";
-$voicerelease="3.8.1";
-$releasedate="April 06, 2011";
+$publicrelease=`git describe --tags --always`;
+$manualrelease=`git describe --tags --always`;
+$voicerelease=`git describe --tags --always`;
+$releasedate=`date +%F`;
 $releasenotes="/wiki/ReleaseNotes381";
 
 %builds = (
