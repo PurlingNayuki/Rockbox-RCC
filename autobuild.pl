@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-$version="3.5RC";
+$version=`git describe --tags --always`;
 
-require "tools/builds.pm";
+require "./autobuild-targets.pm";
 
 my $verbose;
 if($ARGV[0] eq "-v") {
