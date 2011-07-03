@@ -2740,7 +2740,7 @@ static void confirm_saving(void)
 
 static int add2file_list(bool remove){
   if(file_list.num >= MAX_FILES2DELETE){
-    rb->pcmbuf_beep(1000, 500, 3000);
+    rb->beep_play(1000, 500, 3000);
     rb->splash(HZ, STR_(SNC_L_DEL_BUFFER_FULL));
     file_list_menu();
     if(file_list.num >= MAX_FILES2DELETE)
@@ -2754,7 +2754,7 @@ static int add2file_list(bool remove){
            file_list.files[--file_list.num]);
       }
       else
-        rb->pcmbuf_beep(1000, 500, 3000);
+        rb->beep_play(1000, 500, 3000);
       return ACTION_REDRAW;
     }
     i--;
