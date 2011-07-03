@@ -1,7 +1,7 @@
 *.patch
 *.diff
 
-#自动编译工具，试编译文件
+#鑷姩缂栬瘧宸ュ叿锛岃瘯缂栬瘧鏂囦欢
 tools/bmp2rb
 tools/codepages
 tools/convbdf
