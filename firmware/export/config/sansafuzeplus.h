@@ -116,9 +116,13 @@
 #define HAVE_FLASH_STORAGE
 
 /* define this if the flash memory uses the SecureDigital Memory Card protocol */
-#define CONFIG_STORAGE (STORAGE_SD | STORAGE_MMC)
-
-#define NUM_DRIVES 2
+#ifdef BOOTLOADER
+# define CONFIG_STORAGE STORAGE_MMC
+#else
+# define CONFIG_STORAGE (STORAGE_SD | STORAGE_MMC)
+# define NUM_DRIVES 2
+# define HAVE_HOTSWAP
+#endif
 
 /* todo */
 #define BATTERY_CAPACITY_DEFAULT 550    /* default battery capacity */
@@ -158,12 +162,6 @@
 #define FIRMWARE_OFFSET_FILE_CRC    0x0
 #define FIRMWARE_OFFSET_FILE_DATA   0x8
 
-#ifndef BOOTLOADER
-#define HAVE_MULTIDRIVE
-#define NUM_DRIVES 2
-#define HAVE_HOTSWAP
-#endif
-
 /* USB On-the-go */
 #define CONFIG_USBOTG USBOTG_ARC
 
@@ -171,11 +169,14 @@
 #define HAVE_USBSTACK
 //#define USB_HANDLED_BY_OF
 #define USE_ROCKBOX_USB
-#define HAVE_BOOTLOADER_USB_MODE
 #define USB_VENDOR_ID 0x0781
 #define USB_PRODUCT_ID 0x74e1
 #define HAVE_USB_HID_MOUSE
 //#define HAVE_BOOTLOADER_USB_MODE
+
+/* The fuze+ actually interesting partition table does not use 512-byte sector
+ * (usually 2048 logical sector size) */
+#define MAX_LOG_SECTOR_SIZE 2048
 
 /* Define this if you have adjustable CPU frequency */
 #define HAVE_ADJUSTABLE_CPU_FREQ
