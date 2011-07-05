@@ -33,7 +33,6 @@ vox.c
 wav64.c
 tta.c
 wmapro.c
-vgm.c
 
 #ifdef HAVE_RECORDING
 

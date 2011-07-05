@@ -216,9 +216,6 @@ const struct afmt_entry audio_formats[AFMT_NUM_CODECS] =
     /* Advanced Audio Coding High Efficiency in M4A container */
     [AFMT_MP4_AAC_HE] =
         AFMT_ENTRY("AAC-HE","aac",  NULL,       get_mp4_metadata,   "mp4\0"),
-    /* VGM (Video Game Music Format) */
-    [AFMT_VGM] =
-        AFMT_ENTRY("VGM", "vgm", NULL, get_vgm_metadata,   "vgm\0vgz\0"),
 #endif
 };
 
@@ -302,7 +299,6 @@ enum data_type get_audio_base_data_type(int afmt)
     case AFMT_SID:
     case AFMT_MOD:
     case AFMT_SAP:
-    case AFMT_VGM:
         /* Type must be allocated and loaded in its entirety onto
            the buffer */
         return TYPE_ATOMIC_AUDIO;
