@@ -1831,11 +1831,12 @@ const struct settings_list settings[] = {
 #ifdef HAVE_PICTUREFLOW_INTEGRATION        
         ",pictureflow"
 #endif
+        ",show lyrics"
         ,UNIT_INT, hotkey_formatter, hotkey_getlang, NULL, 
 #ifdef HAVE_PICTUREFLOW_INTEGRATION        
-        7, 
+        8, 
 #else
-        6,
+        7,
 #endif
         HOTKEY_OFF,
         HOTKEY_VIEW_PLAYLIST, HOTKEY_SHOW_TRACK_INFO, HOTKEY_PITCHSCREEN,
@@ -1843,6 +1844,7 @@ const struct settings_list settings[] = {
 #ifdef HAVE_PICTUREFLOW_INTEGRATION        
         , HOTKEY_PICTUREFLOW
 #endif        
+        , HOTKEY_LYRICS,
         ),
     TABLE_SETTING(F_ALLOW_ARBITRARY_VALS, hotkey_tree,
         LANG_HOTKEY_FILE_BROWSER, HOTKEY_OFF, "hotkey tree",
