@@ -51,10 +51,11 @@
 #define PINCTRL_DRIVE_12mA      2
 #define PINCTRL_DRIVE_16mA      3 /* not available on all pins */
 
+typedef void (*pin_irq_cb_t)(int bank, int pin);
+
 static inline void imx233_pinctrl_init(void)
 {
-    __REG_CLR(HW_PINCTRL_CTRL) = __BLOCK_CLKGATE;
-    __REG_CLR(HW_PINCTRL_CTRL) = __BLOCK_SFTRST;
+    __REG_CLR(HW_PINCTRL_CTRL) = __BLOCK_CLKGATE | __BLOCK_SFTRST;
 }
 
 static inline void imx233_set_pin_drive_strength(unsigned bank, unsigned pin, unsigned strength)
@@ -121,5 +122,10 @@ static inline void imx233_enable_pin_pullup_mask(unsigned bank, uint32_t pin_msk
     else
         __REG_CLR(HW_PINCTRL_PULL(bank)) = pin_msk;
 }
+
+/** On irq, the pin irq interrupt is disable and then cb is called;
+ * the setup_pin_irq function needs to be called again to enable it again */
+void imx233_setup_pin_irq(int bank, int pin, bool enable_int,
+    bool level, bool polarity, pin_irq_cb_t cb);
 
 #endif /* __PINCTRL_IMX233_H__ */

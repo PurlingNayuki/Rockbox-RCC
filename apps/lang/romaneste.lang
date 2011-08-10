@@ -2327,19 +2327,19 @@
 </phrase>
 <phrase>
   id: LANG_FM_SAVE_CHANGES
-  desc: When you try to exit radio to confirm save
+  desc: deprecated
   user: core
   <source>
     *: none
-    radio: "Save Changes?"
+    radio: ""
   </source>
   <dest>
     *: none
-    radio: "Salvați modificările?"
+    radio: ""
   </dest>
   <voice>
     *: none
-    radio: "Salvați modificările?"
+    radio: ""
   </voice>
 </phrase>
 <phrase>
@@ -2812,6 +2812,7 @@
     iaudiox5,iaudiom5,gigabeat*,mrobe100: "Building database... %d found (LEFT to return)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Building database... %d found (PREV to return)"
     gogearsa9200: "Building database... %d found (REW to return)"
+    archosplayer: "Building DB %d found"
   </source>
   <dest>
     *: "Creare bază de date... %d găsite (STINGERE pentru revenire)"
@@ -2820,6 +2821,7 @@
     iaudiox5,iaudiom5,gigabeat*,mrobe100: "Creare bază de date... %d găsite (LEFT pentru revenire)"
     iriverh10,iriverh10_5gb,sansae200*,sansac200*,sansafuze*,vibe500: "Creare bază de date... %d găsite (PREV pentru revenire)"
     gogearsa9200: "Creare bază de date... %d găsite (REW pentru revenire)"
+    archosplayer: "Creare bază de date... %d găsite"
   </dest>
   <voice>
     *: "intrări găsite pentru baza de date"
@@ -6508,16 +6510,16 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG
-  desc: in onplay menu
+  desc: in main menu and onplay menu
   user: core
   <source>
-    *: "Playlist Catalog"
+    *: "Playlist Catalogue"
   </source>
   <dest>
-    *: "Catalog liste de redare"
+    *: "Catalog liste redare"
   </dest>
   <voice>
-    *: "Catalog liste de redare"
+    *: "Catalog liste redare"
   </voice>
 </phrase>
 <phrase>
@@ -7621,7 +7623,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO_NEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to New Playlist"
@@ -8080,7 +8082,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_ADD_TO
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
     *: "Add to Playlist"
@@ -9117,10 +9119,10 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_VIEW
-  desc: in onplay playlist catalog submenu
+  desc: in onplay playlist catalogue submenu
   user: core
   <source>
-    *: "View Catalog"
+    *: "View Catalogue"
   </source>
   <dest>
     *: "Vizualizare catalog"
@@ -9644,7 +9646,7 @@
 </phrase>
 <phrase>
   id: LANG_PLAYLISTS
-  desc: in the main menu and file view setting
+  desc: in the file view setting
   user: core
   <source>
     *: "Playlists"
@@ -10268,7 +10270,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_DIRECTORY
-  desc: error message when playlist catalog directory doesn't exist
+  desc: error message when playlist catalogue directory doesn't exist
   user: core
   <source>
     *: "%s doesn't exist"
@@ -10299,7 +10301,7 @@
 </phrase>
 <phrase>
   id: LANG_CATALOG_NO_PLAYLISTS
-  desc: error message when no playlists for playlist catalog
+  desc: error message when no playlists for playlist catalogue
   user: core
   <source>
     *: "No Playlists"
@@ -12721,25 +12723,6 @@
     *: "Pornire explorator fișiere aici"
   </voice>
 </phrase>
-
-
-<phrase>
-  id: LANG_RECORDING_HISTOGRAM_INTERVAL
-  desc: in record settings menu
-  user: core
-  <source>
-    *: none
-    recording_histogram: "Histogram interval"
-  </source>
-  <dest>
-    *: none
-    recording_histogram: "Intervalul histogramei"
-  </dest>
-  <voice>
-    *: none
-    recording_histogram: "Intervalul histogramei"
-  </voice>
-</phrase>
 <phrase>
   id: LANG_PAUSE_REWIND
   desc: Seconds to rewind when rewind on pause is enabled.
@@ -12752,5 +12735,78 @@
   </dest>
   <voice>
     *: "Rebobinare la pauză"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_HISTOGRAM_INTERVAL
+  desc: in record settings menu
+  user: core
+  <source>
+    *: none
+    histogram: "Histogram interval"
+  </source>
+  <dest>
+    *: none
+    histogram: "Histogram interval"
+  </dest>
+  <voice>
+    *: none
+    histogram: "Interval histogramă "
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "Listă redare curentă"
+  </dest>
+  <voice>
+    *: "Listă redare curentă"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "Set As Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Setare dosar pentru catalog liste redare"
+  </dest>
+  <voice>
+    *: "Setare dosar pentru catalog liste redare"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "Save Changes?"
+  </source>
+  <dest>
+    *: "Salvare modificări?"
+  </dest>
+  <voice>
+    *: "Salvare modificări?"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "Reset Playlist Catalogue Directory"
+  </source>
+  <dest>
+    *: "Resetare dosar pentru catalog liste redare"
+  </dest>
+  <voice>
+    *: "Resetare dosar pentru catalog liste redare"
   </voice>
 </phrase>

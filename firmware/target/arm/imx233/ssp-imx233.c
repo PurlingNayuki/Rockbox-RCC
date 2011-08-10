@@ -44,6 +44,7 @@ static struct semaphore ssp_sema[2];
 static struct ssp_dma_command_t ssp_dma_cmd[2];
 static uint32_t ssp_bus_width[2];
 static unsigned ssp_log_block_size[2];
+static ssp_detect_cb_t ssp_detect_cb[2];
 
 void INT_SSP(int ssp)
 {
@@ -146,22 +147,7 @@ static void setup_ssp_sd_pins(int ssp)
 
     if(ssp == 1)
     {
-        /* SSP_SCK: drive 8mA */
-        imx233_set_pin_drive_strength(2, 6, PINCTRL_DRIVE_8mA);
-        /* SSP_{SCK,DATA{3,2,1,0},DETECT,CMD} */
-        imx233_set_pin_function(2, 6, PINCTRL_FUNCTION_MAIN);
-        imx233_set_pin_function(2, 5, PINCTRL_FUNCTION_MAIN);
-        imx233_set_pin_function(2, 4, PINCTRL_FUNCTION_MAIN);
-        imx233_set_pin_function(2, 3, PINCTRL_FUNCTION_MAIN);
-        imx233_set_pin_function(2, 2, PINCTRL_FUNCTION_MAIN);
-        imx233_set_pin_function(2, 1, PINCTRL_FUNCTION_MAIN);
-        imx233_set_pin_function(2, 0, PINCTRL_FUNCTION_MAIN);
-        /* SSP_CMD: pullup */
-        imx233_enable_pin_pullup(2, 0, true);
-        imx233_enable_pin_pullup(2, 2, true);
-        imx233_enable_pin_pullup(2, 3, true);
-        imx233_enable_pin_pullup(2, 4, true);
-        imx233_enable_pin_pullup(2, 5, true);
+        
     }
     else
     {
@@ -169,6 +155,41 @@ static void setup_ssp_sd_pins(int ssp)
     }
 }
 #endif
+
+void imx233_ssp_setup_ssp1_sd_mmc_pins(bool enable_pullups, unsigned bus_width,
+    unsigned drive_strength, bool use_alt)
+{
+    /* SSP_{CMD,SCK} */
+    imx233_set_pin_drive_strength(2, 0, drive_strength);
+    imx233_set_pin_drive_strength(2, 6, drive_strength);
+    imx233_set_pin_function(2, 0, PINCTRL_FUNCTION_MAIN);
+    imx233_set_pin_function(2, 6, PINCTRL_FUNCTION_MAIN);
+    imx233_enable_pin_pullup(2, 0, enable_pullups);
+    /* SSP_DATA{0-3} */
+    for(unsigned i = 0; i < MIN(bus_width, 4); i++)
+    {
+        imx233_set_pin_drive_strength(2, 2 + i, drive_strength);
+        imx233_set_pin_function(2, 2 + i, PINCTRL_FUNCTION_MAIN);
+        imx233_enable_pin_pullup(2, 2 + i, enable_pullups);
+    }
+
+    /* SSP_DATA{4-7} */
+    for(unsigned i = 4; i < bus_width; i++)
+    {
+        if(use_alt)
+        {
+            imx233_set_pin_drive_strength(0, 22 + i, drive_strength);
+            imx233_set_pin_function(0, 22 + i, PINCTRL_FUNCTION_ALT2);
+            imx233_enable_pin_pullup(0, 22 + i, enable_pullups);
+        }
+        else
+        {
+            imx233_set_pin_drive_strength(0, 4 + i, drive_strength);
+            imx233_set_pin_function(0, 4 + i, PINCTRL_FUNCTION_ALT2);
+            imx233_enable_pin_pullup(0, 4 + i, enable_pullups);
+        }
+    }
+}
 
 void imx233_ssp_setup_ssp2_sd_mmc_pins(bool enable_pullups, unsigned bus_width,
     unsigned drive_strength)
@@ -258,6 +279,7 @@ enum imx233_ssp_error_t imx233_ssp_sd_mmc_transfer(int ssp, uint8_t cmd,
         (3 << HW_APB_CHx_CMD__CMDWORDS_BP) |
         (xfer_size << HW_APB_CHx_CMD__XFER_COUNT_BP);
 
+    __REG_CLR(HW_SSP_CTRL1(ssp)) = HW_SSP_CTRL1__ALL_IRQ;
     imx233_dma_reset_channel(APB_SSP(ssp));
     imx233_dma_start_command(APB_SSP(ssp), &ssp_dma_cmd[ssp - 1].dma);
 
@@ -266,7 +288,10 @@ enum imx233_ssp_error_t imx233_ssp_sd_mmc_transfer(int ssp, uint8_t cmd,
     enum imx233_ssp_error_t ret;
     
     if(semaphore_wait(&ssp_sema[ssp - 1], HZ) == OBJ_WAIT_TIMEDOUT)
+    {
+        imx233_dma_reset_channel(APB_SSP(ssp));
         ret = SSP_TIMEOUT;
+    }
     else if((HW_SSP_CTRL1(ssp) & HW_SSP_CTRL1__ALL_IRQ) == 0)
         ret =  SSP_SUCCESS;
     else if(HW_SSP_CTRL1(ssp) & (HW_SSP_CTRL1__RESP_TIMEOUT_IRQ |
@@ -296,4 +321,52 @@ void imx233_ssp_sd_mmc_power_up_sequence(int ssp)
     __REG_SET(HW_SSP_CMD0(ssp)) = HW_SSP_CMD0__CONT_CLKING_EN;
     mdelay(1);
     __REG_CLR(HW_SSP_CMD0(ssp)) = HW_SSP_CMD0__CONT_CLKING_EN;
+}
+
+static int ssp_detect_oneshot_callback(int ssp)
+{
+    if(ssp_detect_cb[ssp - 1])
+        ssp_detect_cb[ssp - 1](ssp);
+
+    return 0;
+}
+
+static int ssp1_detect_oneshot_callback(struct timeout *tmo)
+{
+    (void) tmo;
+    return ssp_detect_oneshot_callback(1);
+}
+
+static int ssp2_detect_oneshot_callback(struct timeout *tmo)
+{
+    (void) tmo;
+    return ssp_detect_oneshot_callback(2);
+}
+
+static void detect_irq(int bank, int pin)
+{
+    static struct timeout ssp1_detect_oneshot;
+    static struct timeout ssp2_detect_oneshot;
+    if(bank == 2 && pin == 1)
+        timeout_register(&ssp1_detect_oneshot, ssp1_detect_oneshot_callback, (3*HZ/10), 0);
+    else if(bank == 0 && pin == 19)
+        timeout_register(&ssp2_detect_oneshot, ssp2_detect_oneshot_callback, (3*HZ/10), 0);
+}
+
+void imx233_ssp_sdmmc_setup_detect(int ssp, bool enable, ssp_detect_cb_t fn)
+{
+    int bank = ssp == 1 ? 2 : 0;
+    int pin = ssp == 1 ? 1 : 19;
+    ssp_detect_cb[ssp - 1] = fn;
+    if(enable)
+    {
+        imx233_set_pin_function(bank, pin, PINCTRL_FUNCTION_GPIO);
+        imx233_enable_gpio_output(bank, pin, false);
+    }
+    imx233_setup_pin_irq(bank, pin, enable, true, !imx233_ssp_sdmmc_detect(ssp), detect_irq);
+}
+
+bool imx233_ssp_sdmmc_detect(int ssp)
+{
+    return !!(HW_SSP_STATUS(ssp) & HW_SSP_STATUS__CARD_DETECT);
 }

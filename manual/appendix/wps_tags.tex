@@ -201,7 +201,7 @@ or \config{\%D(2)}), produce the information for the next file to be played.
     \item `start' is the offset relative to the currently playing track for the
     playlist to display from (0 the current track, 1 is the next track, etc.).
     \item `code to render' is a line of skin code which will be displayed for
-    each line in the viewer. All text tags are supporte (including conditionals
+    each line in the viewer. All text tags are supported (including conditionals
     and sublines)
   \end{itemize}
 
@@ -266,15 +266,41 @@ Example: \config{\%?mp<Stop|Play|Pause|Ffwd|Rew|Rec|Rec pause|FM|FM pause>}
 
 \section{Current Screen}
   \begin{tagmap}
-    \config{\%cs} & The current screen, 1-15, in the order:
-                Menus, WPS, Recording screen, FM Radio screen, Current Playlist screen,
-                Settings menus, File browser, Database, Plugins, Quickscreen,
-                Pitchscreen, Setting chooser\\
+    \config{\%cs} & The current screen, 1-18, in the order shown below\\
   \end{tagmap}
-The tag can also be used as the switch in a conditional tag. For players without
-some capabilities (e.g. having no FM radio) some values will be never yielded.
 
-Example: \config{You are in the \%?cs<Main menu|WPS|Recording screen|FM Radio screen>}
+\begin{table}
+  \begin{rbtabular}{.75\textwidth}{lX}%
+  {\textbf{Number} & \textbf{Screen}}{}{}
+    1 & Menus \\
+    2 & WPS \\
+    3 & Recording screen \\
+    4 & FM Radio screen \\
+    5 & Current Playlist screen \\
+    6 & Settings menus \\
+    7 & File browser \\
+    8 & Database browser \\
+    9 & Plugin browser \\
+    10 & Quickscreen \\
+    11 & Pitchscreen \\
+    12 & Setting chooser \\
+    13 & Playlist Catalogue Viewer \\
+    14 & Plugin \\
+    15 & Context menu \\
+    16 & System Info screen \\ 
+    17 & Time and Date Screen \\
+    18 & Bookmark browser \\
+  \end{rbtabular}
+\end{table}
+
+The tag can also be used as the switch in a conditional tag. For players without
+certain capabilities (e.g. no FM radio) some values will never be returned.
+
+Examples:
+
+\config{You are in the \%?cs<Main menu|WPS|Recording screen|FM Radio screen>}
+
+\config{\%?if(\%cs, =, 2)<This is the WPS>}
 
 \section{List Title (\fname{.sbs} only)}
   \begin{tagmap}
@@ -412,7 +438,7 @@ is as follows (a list in braces means that those file extensions are tried in
 that order):
 
 \begin{enumerate}
-\item  embedded (JPEG images in ID3v2 tags only)
+\item  embedded (JPEG images in ID3v2 or MP4 tags only)
 \item  \fname{./filename.\{jpeg,jpg,bmp\}}
 \item  \fname{./albumtitle.\{jpeg,jpg,bmp\}}
 \item  \fname{./cover.\{jpeg,jpg,bmp\}}
@@ -600,13 +626,11 @@ display cycling round the defined sublines. See
 \opt{touchscreen}{
   \section{Touchscreen Areas}
     \begin{tagmap}
-      \config{\%T(x,y,width,\tabnlindent{}height,action)}
+      \config{\%T(x,y,width,\tabnlindent{}height, action, [options])}
       & Invoke the action specified when the user presses in the defined
       touchscreen area.\\
     \end{tagmap}
-  If the action starts with \& then the area must be held and allows repeat presses (e.g. for seeking).
-  If the action starts with * then the area must be held but the press only triggers once
-      (e.g. for switching a setting on a long press).
+
   Possible actions are:
 
   \begin{description}
@@ -635,6 +659,15 @@ display cycling round the defined sublines. See
       \config{\%T(0,0, setting\_inc, volume)} increases the volume by one step).
     \item[setting\_dec] -- Decrement the subsequently specified setting (e.g
       \config{\%T(0,0, setting\_dec, volume)} decreases the volume by one step).
+  \end{description}
+  Any (or muliple) of the following options can be used after the action is specified
+  \subsection{Options}
+  \begin{description}
+    \item[repeat_press] -- This region will trigger mulitple times when held (i.e for seeking)
+    \item[long_press] -- This region will trigger once after it is held for a long press
+    \item[reverse_bar] -- Reverse the bars touch direction (i.e seek right to left)
+    \item[allow_while_locked] -- Allows the region to be pressable when the 
+        skin is locked by the lock touch action
   \end{description}
 
   \section{Last Touchscreen Press}

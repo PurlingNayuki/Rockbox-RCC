@@ -332,17 +332,10 @@ static bool prepare_insert(size_t length)
     /* Maintain the buffer level above the watermark */
     if (playing)
     {
-        /* Only codec thread initiates boost - voice boosts the cpu when playing
-           a clip */
-#ifndef SIMULATOR
-        if (is_codec_thread())
-#endif /* SIMULATOR */
-        {
-            /* boost cpu if necessary */
-            if (pcmbuf_unplayed_bytes < pcmbuf_watermark)
-                trigger_cpu_boost();
-            boost_codec_thread(pcmbuf_unplayed_bytes*10/pcmbuf_size);
-        }
+        /* boost cpu if necessary */
+        if (pcmbuf_unplayed_bytes < pcmbuf_watermark)
+            trigger_cpu_boost();
+        boost_codec_thread(pcmbuf_unplayed_bytes*10/pcmbuf_size);
 
 #ifdef HAVE_CROSSFADE
         /* Disable crossfade if < .5s of audio */
@@ -467,22 +460,20 @@ static size_t get_next_required_pcmbuf_size(void)
 }
 
 /* Initialize the pcmbuffer the structure looks like this:
- * ...|---------PCMBUF---------|FADEBUF|VOICEBUF|DESCS|... */
+ * ...|---------PCMBUF---------[|FADEBUF]|DESCS|... */
 size_t pcmbuf_init(unsigned char *bufend)
 {
-    unsigned char *voicebuf;
-
     pcmbuf_bufend = bufend;
     pcmbuf_size = get_next_required_pcmbuf_size();
     write_chunk = (struct chunkdesc *)pcmbuf_bufend -
         NUM_CHUNK_DESCS(pcmbuf_size);
-    voicebuf = (unsigned char *)write_chunk -
-                voicebuf_init((unsigned char *)write_chunk);
+
 #ifdef HAVE_CROSSFADE
-    fadebuf = voicebuf - CROSSFADE_BUFSIZE;
+    fadebuf = (unsigned char *)write_chunk -
+        (crossfade_enable_request ? CROSSFADE_BUFSIZE : 0);
     pcmbuffer = fadebuf - pcmbuf_size;
 #else
-    pcmbuffer = voicebuf - pcmbuf_size;
+    pcmbuffer = (unsigned char *)write_chunk - pcmbuf_size;
 #endif
 
     init_pcmbuffers();
@@ -1119,7 +1110,9 @@ void pcmbuf_fade(bool fade, bool in)
     if (fade)
     {
         /* Do this on thread for now */
+#ifdef HAVE_PRIORITY_SCHEDULING
         int old_prio = thread_set_priority(thread_self(), PRIORITY_REALTIME);
+#endif
 
         while (1)
         {
@@ -1140,7 +1133,9 @@ void pcmbuf_fade(bool fade, bool in)
             break;
         }
 
+#ifdef HAVE_PRIORITY_SCHEDULING
         thread_set_priority(thread_self(), old_prio);
+#endif
     }
 }
 

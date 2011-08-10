@@ -132,6 +132,7 @@ QT += network
 dbg {
     CONFIG += debug thread qt warn_on
     DEFINES -= QT_NO_DEBUG_OUTPUT
+    DEFINES += DBG
     message("debug")
 }
 !dbg {
@@ -153,12 +154,12 @@ win32 {
 win32:static {
     QMAKE_LFLAGS += -static-libgcc -static-libstdc++
 }
-unix:!static:!libusb1:!macx {
-    LIBS += -lusb
-}
-unix:!static:libusb1:!macx {
+unix:!static:!libusb0:!macx {
     DEFINES += LIBUSB1
     LIBS += -lusb-1.0
+}
+unix:!static:libusb0:!macx {
+    LIBS += -lusb
 }
 
 unix:!macx:static {

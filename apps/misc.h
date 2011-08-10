@@ -100,9 +100,6 @@ int clamp_value_wrap(int value, int max, int min);
 #endif
 #endif
 
-void beep_play(unsigned int frequency, unsigned int duration,
-               unsigned int amplitude);
-
 enum current_activity {
     ACTIVITY_UNKNOWN = 0,
     ACTIVITY_MAINMENU,
@@ -116,8 +113,33 @@ enum current_activity {
     ACTIVITY_PLUGINBROWSER,
     ACTIVITY_QUICKSCREEN,
     ACTIVITY_PITCHSCREEN,
-    ACTIVITY_OPTIONSELECT
+    ACTIVITY_OPTIONSELECT,
+    ACTIVITY_PLAYLISTBROWSER,
+    ACTIVITY_PLUGIN,
+    ACTIVITY_CONTEXTMENU,
+    ACTIVITY_SYSTEMSCREEN,
+    ACTIVITY_TIMEDATESCREEN,
+    ACTIVITY_BOOKMARKSLIST
 };
+
+#if CONFIG_CODEC == SWCODEC
+void beep_play(unsigned int frequency, unsigned int duration,
+               unsigned int amplitude);
+
+enum system_sound
+{
+    SOUND_KEYCLICK = 0,
+    SOUND_TRACK_SKIP,
+    SOUND_TRACK_NO_MORE,
+};
+
+/* Play a standard sound */
+void system_sound_play(enum system_sound sound);
+
+/* Produce keyclick based upon button and global settings */
+void keyclick_click(int button);
+#endif /* CONFIG_CODEC == SWCODEC */
+
 void push_current_activity(enum current_activity screen);
 void pop_current_activity(void);
 enum current_activity get_current_activity(void);
