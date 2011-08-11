@@ -790,10 +790,10 @@
     *: "Cleared"
   </source>
   <dest>
-    *: "所有设置已恢复出厂状态"
+    *: "设置重置完毕"
   </dest>
   <voice>
-    *: "所有设置已经恢复到出厂时的状态"
+    *: "设置已经恢复默认状态"
   </voice>
 </phrase>
 <phrase>
@@ -9142,10 +9142,10 @@
     *: "Playlist Catalogue"
   </source>
   <dest>
-    *: "播放列表选项"
+    *: "播放列表"
   </dest>
   <voice>
-    *: "播放列表选项"
+    *: "播放列表"
   </voice>
 </phrase>
 <phrase>
@@ -12351,6 +12351,34 @@
   </voice>
 </phrase>
 <phrase>
+  id: LANG_SET_AS_PLAYLISTCAT_DIR
+  desc: used in the onplay menu to set a playlist catalogue dir
+  user: core
+  <source>
+    *: "设为播放列表默认保存目录"
+  </source>
+  <dest>
+    *: "设为播放列表默认保存目录"
+  </dest>
+  <voice>
+    *: "设置为保存播放列表的默认目录"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_RESET_PLAYLISTCAT_DIR
+  desc:
+  user: core
+  <source>
+    *: "重置播放列表默认保存目录"
+  </source>
+  <dest>
+    *: "重置播放列表默认保存目录"
+  </dest>
+  <voice>
+    *: "重置保存播放列表的默认目录"
+  </voice>
+</phrase>
+<phrase>
   id: LANG_TAGNAVI_UNTAGGED
   desc: "<untagged>" entry in tag browser
   user: core
@@ -12807,5 +12835,19 @@
   </dest>
   <voice>
     *: "用户评分"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SAVE_CHANGES
+  desc: When you try to exit screens to confirm save
+  user: core
+  <source>
+    *: "要保存修改吗？"
+  </source>
+  <dest>
+    *: "要保存修改吗？"
+  </dest>
+  <voice>
+    *: "要保存修改吗？
   </voice>
 </phrase>
