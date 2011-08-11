@@ -54,7 +54,7 @@ void Kss_init( struct Kss_Emu* this )
 	this->sample_rate   = 0;
 	this->mute_mask_    = 0;
 	this->tempo       = (int)(FP_ONE_TEMPO);
-	this->gain        = 1.0;
+	this->gain        = (int)FP_ONE_GAIN;
 	this->chip_flags = 0;
 	
 	// defaults
@@ -98,16 +98,16 @@ static blargg_err_t check_kss_header( void const* header )
 
 void update_gain( struct Kss_Emu* this )
 {
-	double g = this->gain;
+	int g = this->gain;
 	if ( msx_music_enabled( this ) || msx_audio_enabled( this ) 
 	  || sms_fm_enabled( this ) )
 	{
-		g *= 0.75;
+		g = (g*3) / 4; //g *= 0.75;
 	}
 	else
 	{
 		if ( this->scc_accessed )
-			g *= 1.2;
+			g = (g*6) / 5; //g *= 1.2;
 	}
 	
 	if ( sms_psg_enabled( this ) ) Sms_apu_volume( &this->sms.psg, g );

@@ -55,7 +55,7 @@ void Gbs_init( struct Gbs_Emu* this )
 	this->ignore_silence     = false;
 	this->silence_lookahead = 6;
 	this->max_initial_silence = 21;
-	Sound_set_gain( this, 1.2 );
+	Sound_set_gain( this, (int)(FP_ONE_GAIN*1.2) );
 	
 	Rom_init( &this->rom, 0x4000 );
 	

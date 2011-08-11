@@ -47,7 +47,7 @@ void Sgc_init( struct Sgc_Emu* this )
 	this->sample_rate = 0;
 	this->mute_mask_  = 0;
 	this->tempo       = (int)FP_ONE_TEMPO;
-	this->gain        = 1.0;
+	this->gain        = (int)FP_ONE_GAIN;
 	this->voice_count = 0;
 	
 	// defaults
@@ -61,7 +61,7 @@ void Sgc_init( struct Sgc_Emu* this )
 	Rom_init( &this->rom, 0x4000 );
 	Z80_init( &this->cpu );
 
-	Sound_set_gain( this, 1.2 );
+	Sound_set_gain( this, (int)(FP_ONE_GAIN*1.2) );
 		
 	// Unload
 	clear_track_vars( this );

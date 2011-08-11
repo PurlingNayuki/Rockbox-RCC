@@ -61,7 +61,7 @@ void Hes_init( struct Hes_Emu* this )
 
 	this->timer.raw_load = 0;
 	this->silence_lookahead = 6;
-	Sound_set_gain( this, 1.11 );
+	Sound_set_gain( this, (int)(FP_ONE_GAIN*1.11) );
 
 	Rom_init( &this->rom, 0x2000 );
 
