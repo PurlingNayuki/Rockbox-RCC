@@ -23,7 +23,7 @@ void Sms_apu_volume( struct Sms_Apu* this, int vol )
 	Synth_volume( &this->synth, vol );
 }
 
-inline int calc_output( struct Sms_Apu* this, int i )
+static inline int calc_output( struct Sms_Apu* this, int i )
 {
 	int flags = this->ggstereo >> i;
 	return (flags >> 3 & 2) | (flags & 1);
@@ -139,7 +139,7 @@ static void run_until( struct Sms_Apu* this, blip_time_t end_time )
 		if ( out )
 		{
 			// volumes [i] ~= 64 * pow( 1.26, 15 - i ) / pow( 1.26, 15 )
-			static unsigned char const volumes [16] ICONST_ATTR = {
+			static unsigned char const volumes [16] = {
 				64, 50, 40, 32, 25, 20, 16, 13, 10, 8, 6, 5, 4, 3, 2, 0
 			};
 			

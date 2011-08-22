@@ -46,7 +46,7 @@ void Apu_init( struct Nes_Apu* this )
 void Apu_enable_nonlinear( struct Nes_Apu* this, int v )
 {
 	this->dmc.nonlinear = true;
-	Synth_volume( &this->square_synth, (int)((1.3 * 0.25751258 / 0.742467605 * 0.25 * FP_ONE_VOLUME) / amp_range * v) );
+	Synth_volume( &this->square_synth, (int)((long long)(1.3 * 0.25751258 / 0.742467605 * 0.25 * FP_ONE_VOLUME) / amp_range * v) );
 	
 	const int tnd = (int)(0.48 / 202 * 0.75 * FP_ONE_VOLUME);
 	Synth_volume( &this->triangle.synth, 3 * tnd );
@@ -145,7 +145,7 @@ void Apu_run_until( struct Nes_Apu* this, nes_time_t end_time )
 	}
 }
 
-void run_until_( struct Nes_Apu* this, nes_time_t end_time )
+static void run_until_( struct Nes_Apu* this, nes_time_t end_time )
 {
 	require( end_time >= this->last_time );
 	
@@ -272,7 +272,7 @@ void Apu_end_frame( struct Nes_Apu* this, nes_time_t end_time )
 
 // registers
 
-static const unsigned char length_table [0x20] ICONST_ATTR = {
+static const unsigned char length_table [0x20] = {
 	0x0A, 0xFE, 0x14, 0x02, 0x28, 0x04, 0x50, 0x06,
 	0xA0, 0x08, 0x3C, 0x0A, 0x0E, 0x0C, 0x1A, 0x0E, 
 	0x0C, 0x10, 0x18, 0x12, 0x30, 0x14, 0x60, 0x16,
