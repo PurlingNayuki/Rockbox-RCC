@@ -11967,11 +11967,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "音调/音速"
+    swcodec: "防止变速时声音变调"
   </dest>
   <voice>
     *: none
-    swcodec: "音调/音速"
+    swcodec: "防止变速时声音变调"
   </voice>
 </phrase>
 <phrase>
@@ -12376,6 +12376,20 @@
   </dest>
   <voice>
     *: "重置保存播放列表的默认目录"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_CURRENT_PLAYLIST
+  desc: Used when you need to say playlist, also voiced
+  user: core
+  <source>
+    *: "Current Playlist"
+  </source>
+  <dest>
+    *: "对当前播放列表..."
+  </dest>
+  <voice>
+    *: "对当前的播放列表执行动作"
   </voice>
 </phrase>
 <phrase>
