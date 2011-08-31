@@ -13061,3 +13061,17 @@
     *: "取消睡眠定时"
   </voice>
 </phrase>
+<phrase>
+  id: LANG_QUIT_ROCKBOX
+  desc: Quit Rockbox item in root menu
+  user: core
+  <source>
+    *: "Quit Rockbox"
+  </source>
+  <dest>
+    *: "退出Rockbox"
+  </dest>
+  <voice>
+    *: "退出Rockbox"
+  </voice>
+</phrase>
