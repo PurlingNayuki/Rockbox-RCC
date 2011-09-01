@@ -35,11 +35,11 @@
 #include "thread.h"
 #include "errno.h"
 #include "mp3data.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "mp3_playback.h"
 #include "talk.h"
 #include "sound.h"
-#include "bitswap.h"
+#include "system.h"
 #include "appevents.h"
 #include "playlist.h"
 #include "cuesheet.h"
@@ -128,6 +128,7 @@ static struct trackdata trackdata[MAX_TRACK_ENTRIES];
 static unsigned int current_track_counter = 0;
 
 #ifndef SIMULATOR
+static void stop_playing(void);
 /* Play time of the previous track */
 static unsigned long prev_track_elapsed;
 
@@ -140,12 +141,14 @@ static struct cuesheet *curr_cuesheet = NULL;
 static bool checked_for_cuesheet = false;
 
 static const char mpeg_thread_name[] = "mpeg";
+static unsigned int audio_thread_id;
 static unsigned int mpeg_errno;
 
 static bool playing = false;    /* We are playing an MP3 stream */
 static bool is_playing = false; /* We are (attempting to) playing MP3 files */
 static bool paused;             /* playback is paused */
-static char* mpeg_audiobuf;     /* the audio buffer */
+static int audiobuf_handle;     /* handle to the audio buffer */
+static char* mpeg_audiobuf;     /* poiunter to the audio buffer */
 static long audiobuflen;        /* length of the audio buffer */
 
 #ifdef SIMULATOR
@@ -491,15 +494,88 @@ unsigned long mpeg_get_last_header(void)
 #endif /* !SIMULATOR */
 }
 
+static void do_stop(void)
+{
+    is_playing = false;
+    paused = false;
+
+#ifndef SIMULATOR
+    if (playing)
+        playlist_update_resume_info(audio_current_track());
+
+    stop_playing();
+    mpeg_stop_done = true;
+#else
+    playing = false;
+#endif
+}
+
+static void audio_reset_buffer_noalloc(void* buf, size_t bufsize);
+/* Buffer must not move. */
+static int shrink_callback(int handle, unsigned hints, void* start, size_t old_size)
+{
+    long offset = audio_current_track()->offset;
+    int status = audio_status();
+    /* TODO: Do it without stopping playback, if possible */
+    /* don't call audio_hard_stop() as it frees this handle */
+    if (thread_self() == audio_thread_id)
+    {   /* inline case MPEG_STOP (audio_stop()) response
+         * if we're in the audio thread since audio_stop() otherwise deadlocks */
+        do_stop();
+    }
+    else
+        audio_stop();
+    talk_buffer_steal(); /* we obtain control over the buffer */
+
+    /* we should be free to change the buffer now */
+    size_t wanted_size = (hints & BUFLIB_SHRINK_SIZE_MASK);
+    ssize_t size = (ssize_t)old_size - wanted_size;
+    switch (hints & BUFLIB_SHRINK_POS_MASK)
+    {
+        case BUFLIB_SHRINK_POS_BACK:
+            core_shrink(handle, start, size);
+            audio_reset_buffer_noalloc(start, size);
+            break;
+        case BUFLIB_SHRINK_POS_FRONT:
+            core_shrink(handle, start + wanted_size, size);
+            audio_reset_buffer_noalloc(start + wanted_size, size);
+            break;
+    }
+    if (!(status & AUDIO_STATUS_PAUSE))
+    {   /* safe to call even from the audio thread (due to queue_post()) */
+        audio_play(offset);
+    }
+
+    return BUFLIB_CB_OK;
+}
+
+static struct buflib_callbacks ops = {
+    .move_callback = NULL,
+    .shrink_callback = shrink_callback,
+};
 
 unsigned char * audio_get_buffer(bool talk_buf, size_t *buffer_size)
 {
     (void)talk_buf; /* always grab the voice buffer for now */
 
-    audio_hard_stop();
     if (buffer_size) /* special case for talk_init() */
-        return buffer_get_buffer(buffer_size);
-    return NULL;
+        audio_hard_stop();
+
+    if (!audiobuf_handle)
+    {
+        size_t bufsize;
+        /* audio_hard_stop() frees audiobuf, so re-aquire */
+        audiobuf_handle = core_alloc_maximum("audiobuf", &bufsize, &ops);
+        audiobuflen = bufsize;
+        if (buffer_size)
+            *buffer_size = audiobuflen;
+    }
+    mpeg_audiobuf = core_get_data(audiobuf_handle);
+
+    if (!buffer_size) /* special case for talk_init() */
+        talkbuf_init(mpeg_audiobuf);
+
+    return mpeg_audiobuf;
 }
 
 
@@ -1301,15 +1377,7 @@ static void mpeg_thread(void)
                 break;
 
             case MPEG_STOP:
-                DEBUGF("MPEG_STOP\n");
-                is_playing = false;
-                paused = false;
-
-                if (playing)
-                    playlist_update_resume_info(audio_current_track());
-
-                stop_playing();
-                mpeg_stop_done = true;
+                do_stop();
                 break;
 
             case MPEG_PAUSE:
@@ -2659,17 +2727,36 @@ void audio_set_recording_options(struct audio_recording_options *options)
 #endif /* SIMULATOR */
 #endif /* CONFIG_CODEC == MAS3587F */
 
+size_t audio_buffer_available(void)
+{
+    if (audiobuf_handle > 0)
+        return audiobuflen;
+    return core_available();
+}
+
+static void audio_reset_buffer_noalloc(void* buf, size_t bufsize)
+{
+    talk_buffer_steal(); /* will use the mp3 buffer */
+    mpeg_audiobuf = buf;
+    audiobuflen = bufsize;
+    if (global_settings.cuesheet)
+    {   /* enable cuesheet support */
+        curr_cuesheet = (struct cuesheet*)mpeg_audiobuf;
+        mpeg_audiobuf = SKIPBYTES(mpeg_audiobuf, sizeof(struct cuesheet));
+        audiobuflen -= sizeof(struct cuesheet);
+    }
+    talkbuf_init(mpeg_audiobuf);
+}
+
 static void audio_reset_buffer(void)
 {
-    size_t bufsize; /* dont break strict-aliasing */
-    talk_buffer_steal(); /* will use the mp3 buffer */
+    size_t bufsize = audiobuflen;
 
-    /* release buffer on behalf of any audio_get_buffer() caller,
-     * non-fatal if there was none */
-    buffer_release_buffer(0);
-    /* re-aquire */
-    mpeg_audiobuf = buffer_get_buffer(&bufsize);
-    audiobuflen = bufsize;
+    /* alloc buffer if it's was never allocated or freed by audio_hard_stop() */
+    if (!audiobuf_handle)
+        audiobuf_handle = core_alloc_maximum("audiobuf", &bufsize, &ops);
+
+    audio_reset_buffer_noalloc(core_get_data(audiobuf_handle), bufsize);
 }
 
 void audio_play(long offset)
@@ -2742,7 +2829,11 @@ void audio_hard_stop(void)
     audio_stop();
     /* tell voice we obtain the buffer before freeing */
     talk_buffer_steal();
-    buffer_release_buffer(0);
+    if (audiobuf_handle > 0)
+    {
+        audiobuf_handle = core_free(audiobuf_handle);
+        mpeg_audiobuf = NULL;
+    }
 }
 
 void audio_pause(void)
@@ -2897,22 +2988,17 @@ static void mpeg_thread(void)
 void audio_init(void)
 {
     mpeg_errno = 0;
-    /* cuesheet support */
-    if (global_settings.cuesheet)
-        curr_cuesheet = (struct cuesheet*)buffer_alloc(sizeof(struct cuesheet));
 
-    size_t bufsize; /* don't break strict-aliasing */
-    mpeg_audiobuf = buffer_get_buffer(&bufsize);
-    audiobuflen = bufsize;
-    /* give voice buffer until we start to play */
-    talkbuf_init(mpeg_audiobuf);
+    talk_init();
+    audio_reset_buffer();
+
 #ifndef SIMULATOR
     queue_init(&mpeg_queue, true);
 #endif /* !SIMULATOR */
-    create_thread(mpeg_thread, mpeg_stack,
-                  sizeof(mpeg_stack), 0, mpeg_thread_name
-                  IF_PRIO(, PRIORITY_SYSTEM)
-                  IF_COP(, CPU));
+    audio_thread_id = create_thread(mpeg_thread, mpeg_stack,
+                          sizeof(mpeg_stack), 0, mpeg_thread_name
+                          IF_PRIO(, PRIORITY_SYSTEM)
+                          IF_COP(, CPU));
 
     memset(trackdata, 0, sizeof(trackdata));
 

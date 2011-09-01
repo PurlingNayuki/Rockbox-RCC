@@ -30,7 +30,7 @@
 #include "settings.h"
 #include "replaygain.h"
 #include "tdspeed.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "fixedpoint.h"
 #include "fracmul.h"
 #include "dspk.h"
@@ -384,24 +384,50 @@ static void tdspeed_setup(struct dsp_config *dspc)
     resample_buf = big_resample_buf;
 }
 
+
+static int move_callback(int handle, void* current, void* new)
+{
+    /* TODO */
+    (void)handle;(void)current;;
+    big_sample_buf = new;
+    return BUFLIB_CB_OK;
+}
+
+static struct buflib_callbacks ops = {
+    .move_callback = move_callback,
+    .shrink_callback = NULL,
+};
+
+
 void dsp_timestretch_enable(bool enabled)
 {
     /* Hook to set up timestretch buffer on first call to settings_apply() */
-    if (big_sample_buf_count < 0) /* Only do something on first call */
+    static int handle;
+    if (enabled)
     {
-        if (enabled)
-        {
-            /* Set up timestretch buffers */
-            big_sample_buf_count = SMALL_SAMPLE_BUF_COUNT * RESAMPLE_RATIO;
-            big_sample_buf = small_resample_buf;
-            big_resample_buf = (int32_t *) buffer_alloc(big_sample_buf_count * RESAMPLE_RATIO * sizeof(int32_t));
+        if (big_sample_buf_count > 0)
+            return; /* already allocated and enabled */
+        /* Set up timestretch buffers */
+        big_sample_buf_count = SMALL_SAMPLE_BUF_COUNT * RESAMPLE_RATIO;
+        big_sample_buf = small_resample_buf;
+        handle = core_alloc_ex("resample buf",
+                big_sample_buf_count * RESAMPLE_RATIO * sizeof(int32_t), &ops);
+        if (handle > 0)
+        {   /* success, now setup tdspeed */
+            big_resample_buf = core_get_data(handle);
+            tdspeed_init();
+            tdspeed_setup(&AUDIO_DSP);
         }
-        else
-        {
-            /* Not enabled at startup, "big" buffers will never be available */
-            big_sample_buf_count = 0;
-        }
-        tdspeed_setup(&AUDIO_DSP);
+    }
+    if (!enabled || (handle <= 0)) /* disable */
+    {
+        dsp_set_timestretch(PITCH_SPEED_100);
+        tdspeed_finish();
+        if (handle > 0)
+            core_free(handle);
+        handle = 0;
+        big_sample_buf = NULL;
+        big_sample_buf_count = 0;
     }
 }
 
@@ -1388,7 +1414,7 @@ int dsp_callback(int msg, intptr_t param)
  */
 int dsp_process(struct dsp_config *dsp, char *dst, const char *src[], int count)
 {
-    int32_t *tmp[2];
+    static int32_t *tmp[2]; /* tdspeed_doit() needs it static */
     static long last_yield;
     long tick;
     int written = 0;

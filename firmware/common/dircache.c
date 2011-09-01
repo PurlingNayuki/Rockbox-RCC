@@ -38,9 +38,10 @@
 #include "kernel.h"
 #include "usb.h"
 #include "file.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "dir.h"
 #include "storage.h"
+#include "audio.h"
 #if CONFIG_RTC
 #include "time.h"
 #include "timefuncs.h"
@@ -57,6 +58,8 @@
 #else
 #define MAX_OPEN_DIRS 8
 #endif
+static DIR_CACHED opendirs[MAX_OPEN_DIRS];
+static char       opendir_dnames[MAX_OPEN_DIRS][MAX_PATH];
 
 #define MAX_PENDING_BINDINGS 2
 struct fdbind_queue {
@@ -64,12 +67,21 @@ struct fdbind_queue {
     int fd;
 };
 
-/* Exported structures. */
+/* Unions with char to make pointer arithmetic simpler and avoid casting */
 struct dircache_entry {
     struct dirinfo info;
-    struct dircache_entry *next;
-    struct dircache_entry *up;
-    struct dircache_entry *down;
+    union {
+        struct dircache_entry *next;
+        char* next_char;
+    };
+    union {
+        struct dircache_entry *up;
+        char* up_char;
+    };
+    union {
+        struct dircache_entry *down;
+        char* down_char;
+    };
     long startcluster;
     char *d_name;
 };
@@ -127,6 +139,44 @@ static inline struct dircache_entry* get_entry(int id)
 {
     return &dircache_root[id];
 }
+
+/* flag to make sure buffer doesn't move due to other allocs.
+ * this is set to true completely during dircache build */
+static bool dont_move = false;
+static int dircache_handle;
+static int move_callback(int handle, void* current, void* new)
+{
+    (void)handle;
+    if (dont_move)
+        return BUFLIB_CB_CANNOT_MOVE;
+
+    /* relocate the cache */
+    ptrdiff_t diff = new - current;
+    for(unsigned i = 0; i < entry_count; i++)
+    {
+        if (dircache_root[i].d_name)
+            dircache_root[i].d_name += diff;
+        if (dircache_root[i].next_char)
+            dircache_root[i].next_char += diff;
+        if (dircache_root[i].up_char)
+            dircache_root[i].up_char += diff;
+        if (dircache_root[i].down_char)
+            dircache_root[i].down_char += diff;
+    }
+    dircache_root = new;
+
+    d_names_start -= diff;
+    d_names_end -= diff;
+    dot -= diff;
+    dotdot -= diff;
+
+    return BUFLIB_CB_OK;
+}
+
+static struct buflib_callbacks ops = {
+    .move_callback = move_callback,
+    .shrink_callback = NULL,
+};
 
 #ifdef HAVE_EEPROM_SETTINGS
 /**
@@ -571,9 +621,11 @@ int dircache_load(void)
     }
     
     allocated_size = maindata.size + DIRCACHE_RESERVE;
-    dircache_root = buffer_alloc(allocated_size);
-    /* needs to be struct-size aligned so that the pointer arithmetic below works */
-    ALIGN_BUFFER(dircache_root, allocated_size, sizeof(struct dircache_entry));
+    dircache_handle = core_alloc_ex("dircache", allocated_size, &ops);
+    /* block movement during upcoming I/O */
+    dont_move = true;
+    dircache_root = core_get_data(dircache_handle);
+    ALIGN_BUFFER(dircache_root, allocated_size, sizeof(struct dircache_entry*));
     entry_count = maindata.entry_count;
     appflags = maindata.appflags;
 
@@ -605,8 +657,9 @@ int dircache_load(void)
     dotdot = dot - sizeof("..");
 
     /* d_names are in reverse order, so the last entry points to the first string */
-    ptrdiff_t offset_d_names = maindata.d_names_start - d_names_start,
-              offset_entries = maindata.root_entry - dircache_root;
+    ptrdiff_t offset_d_names = maindata.d_names_start - d_names_start;
+    ptrdiff_t offset_entries = maindata.root_entry - dircache_root;
+    offset_entries *= sizeof(struct dircache_entry); /* make it bytes */
 
     /* offset_entries is less likely to differ, so check if it's 0 in the loop
      * offset_d_names however is almost always non-zero, since dircache_save()
@@ -622,12 +675,12 @@ int dircache_load(void)
 
             if (offset_entries == 0)
                 continue;
-            if (dircache_root[i].next)
-                dircache_root[i].next -= offset_entries;
-            if (dircache_root[i].up)
-                dircache_root[i].up -= offset_entries;
-            if (dircache_root[i].down)
-                dircache_root[i].down -= offset_entries;
+            if (dircache_root[i].next_char)
+                dircache_root[i].next_char -= offset_entries;
+            if (dircache_root[i].up_char)
+                dircache_root[i].up_char -= offset_entries;
+            if (dircache_root[i].down_char)
+                dircache_root[i].down_char -= offset_entries;
         }
     }
 
@@ -637,6 +690,7 @@ int dircache_load(void)
     logf("Done, %ld KiB used", dircache_size / 1024);
     dircache_initialized = true;
     memset(fd_bindings, 0, sizeof(fd_bindings));
+    dont_move = false;
 
     return 0;
 }
@@ -657,6 +711,7 @@ int dircache_save(void)
         return -1;
 
     logf("Saving directory cache");
+    dont_move = true;
     fd = open_dircache_file(O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
     maindata.magic = DIRCACHE_MAGIC;
@@ -695,7 +750,7 @@ int dircache_save(void)
         return -4;
     }
 
-    
+    dont_move = false;
     return 0;
 }
 #endif /* HAVE_EEPROM_SETTINGS */
@@ -717,6 +772,7 @@ static int dircache_do_rebuild(void)
     /* reset dircache and alloc root entry */
     entry_count = 0;
     root_entry = allocate_entry();
+    dont_move = true;
 
 #ifdef HAVE_MULTIVOLUME
     append_position = root_entry;
@@ -737,6 +793,7 @@ static int dircache_do_rebuild(void)
                 cpu_boost(false);
                 dircache_size = 0;
                 dircache_initializing = false;
+                dont_move = false;
                 return -2;
             }
             cpu_boost(false);
@@ -762,7 +819,8 @@ static int dircache_do_rebuild(void)
         if (allocated_size - dircache_size < DIRCACHE_RESERVE)
             reserve_used = DIRCACHE_RESERVE - (allocated_size - dircache_size);
     }
-    
+
+    dont_move = false;
     return 1;
 }
 
@@ -787,7 +845,8 @@ static void dircache_thread(void)
 #endif
             case DIRCACHE_BUILD:
                 thread_enabled = true;
-                dircache_do_rebuild();
+                if (dircache_do_rebuild() < 0)
+                    dircache_handle = core_free(dircache_handle);
                 thread_enabled = false;
                 break ;
                 
@@ -814,6 +873,7 @@ static void generate_dot_d_names(void)
     strcpy(dot, ".");
     strcpy(dotdot, "..");
 }
+
 /**
  * Start scanning the disk to build the dircache.
  * Either transparent or non-transparent build method is used.
@@ -828,8 +888,8 @@ int dircache_build(int last_size)
     remove_dircache_file();
 #endif
 
-    /* Background build, dircache has been previously allocated */
-    if (allocated_size > 0)
+    /* Background build, dircache has been previously allocated and */
+    if (allocated_size > MAX(last_size, 0))
     {
         d_names_start = d_names_end;
         dircache_size = 0;
@@ -841,12 +901,16 @@ int dircache_build(int last_size)
         queue_post(&dircache_queue, DIRCACHE_BUILD, 0);
         return 2;
     }
-    
+
+    if (dircache_handle > 0)
+        dircache_handle = core_free(dircache_handle);
+
     if (last_size > DIRCACHE_RESERVE && last_size < DIRCACHE_LIMIT )
     {
         allocated_size = last_size + DIRCACHE_RESERVE;
-        dircache_root = buffer_alloc(allocated_size);
-        ALIGN_BUFFER(dircache_root, allocated_size, sizeof(struct dircache_entry));
+        dircache_handle = core_alloc_ex("dircache", allocated_size, &ops);
+        dircache_root = core_get_data(dircache_handle);
+        ALIGN_BUFFER(dircache_root, allocated_size, sizeof(struct dircache_entry*));
         d_names_start = d_names_end = ((char*)dircache_root)+allocated_size-1;
         dircache_size = 0;
         thread_enabled = true;
@@ -862,11 +926,18 @@ int dircache_build(int last_size)
      * and their corresponding d_name from the end
      * after generation the buffer will be compacted with DIRCACHE_RESERVE
      * free bytes inbetween */
-    size_t got_size;
-    char* buf = buffer_get_buffer(&got_size);
+    size_t available = audio_buffer_available();
+    /* try to allocate at least 1MB, the more the better */
+    if (available < 1<<20) available = 1<<20;
+    if (available > DIRCACHE_LIMIT) available = DIRCACHE_LIMIT;
+
+    dircache_handle = core_alloc_ex("dircache", available, &ops);
+    if (dircache_handle <= 0)
+        return -1; /* that was not successful, should try rebooting */
+    char* buf = core_get_data(dircache_handle);
     dircache_root = (struct dircache_entry*)ALIGN_UP(buf,
-                                                sizeof(struct dircache_entry));
-    d_names_start = d_names_end = buf + got_size - 1;
+                                                sizeof(struct dircache_entry*));
+    d_names_start = d_names_end = buf + available - 1;
     dircache_size = 0;
     generate_dot_d_names();
 
@@ -902,29 +973,11 @@ int dircache_build(int last_size)
     allocated_size = (d_names_end - buf);
     reserve_used = 0;
 
-    buffer_release_buffer(allocated_size);
+    core_shrink(dircache_handle, dircache_root, allocated_size);
     return res;
 fail:
     dircache_disable();
-    buffer_release_buffer(0);
     return res;
-}
-
-/**
- * Steal the allocated dircache buffer and disable dircache.
- */
-void* dircache_steal_buffer(size_t *size)
-{
-    dircache_disable();
-    if (dircache_size == 0)
-    {
-        *size = 0;
-        return NULL;
-    }
-    
-    *size = dircache_size + (DIRCACHE_RESERVE-reserve_used);
-    
-    return dircache_root;
 }
 
 /**
@@ -942,7 +995,7 @@ void dircache_init(void)
     memset(opendirs, 0, sizeof(opendirs));
     for (i = 0; i < MAX_OPEN_DIRS; i++)
     {
-        opendirs[i].theent.d_name = buffer_alloc(MAX_PATH);
+        opendirs[i].theent.d_name = opendir_dnames[i];
     }
     
     queue_init(&dircache_queue, true);
@@ -1022,10 +1075,10 @@ int dircache_get_build_ticks(void)
 }
 
 /**
- * Disables the dircache. Usually called on shutdown or when
- * accepting a usb connection.
- */
-void dircache_disable(void)
+ * Disables dircache without freeing the buffer (so it can be re-enabled
+ * afterwards with dircache_resume() or dircache_build()), usually
+ * called when accepting an usb connection */
+void dircache_suspend(void)
 {
     int i;
     bool cache_in_use;
@@ -1052,6 +1105,52 @@ void dircache_disable(void)
     
     logf("Cache released");
     entry_count = 0;
+}
+
+/**
+ * Re-enables the dircache if previous suspended by dircache_suspend
+ * or dircache_steal_buffer(), re-using the already allocated buffer
+ *
+ * Returns true if the background build is started, false otherwise
+ * (e.g. if no buffer was previously allocated)
+ */
+bool dircache_resume(void)
+{
+    bool ret = allocated_size > 0;
+    if (ret) /* only resume if already allocated */
+        ret = (dircache_build(0) > 0);
+
+    return (allocated_size > 0);
+}
+
+/**
+ * Disables the dircache entirely. Usually called on shutdown or when
+ * deactivated
+ */
+void dircache_disable(void)
+{
+    dircache_suspend();
+    dircache_handle = core_free(dircache_handle);
+    dircache_size = allocated_size = 0;
+}
+
+/**
+ * Steal the allocated dircache buffer and disable dircache.
+ */
+void* dircache_steal_buffer(size_t *size)
+{
+    dircache_suspend();
+    if (dircache_size == 0)
+    {
+        *size = 0;
+        return NULL;
+    }
+
+    /* since we give up the buffer (without freeing), it must not move anymore */
+    dont_move = true;
+    *size = dircache_size + (DIRCACHE_RESERVE-reserve_used);
+    
+    return dircache_root;
 }
 
 /**

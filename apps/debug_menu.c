@@ -79,6 +79,7 @@
 #include "peakmeter.h"
 #endif
 #include "logfdisp.h"
+#include "core_alloc.h"
 #if CONFIG_CODEC == SWCODEC
 #include "pcmbuf.h"
 #include "buffering.h"
@@ -415,6 +416,43 @@ static bool dbg_buffering_thread(void)
 }
 #endif /* CONFIG_CODEC */
 #endif /* HAVE_LCD_BITMAP */
+
+static const char* bf_getname(int selected_item, void *data,
+                                   char *buffer, size_t buffer_len)
+{
+    (void)data;
+    core_print_block_at(selected_item, buffer, buffer_len);
+    return buffer;
+}
+
+static int bf_action_cb(int action, struct gui_synclist* list)
+{
+    if (action == ACTION_STD_OK)
+    {
+        splash(HZ/1, "Attempting a 64k allocation");
+        int handle = core_alloc("test", 64<<10);
+        splash(HZ/2, (handle > 0) ? "Success":"Fail");
+        /* for some reason simplelist doesn't allow adding items here if
+         * info.get_name is given, so use normal list api */
+        gui_synclist_set_nb_items(list, core_get_num_blocks());
+        if (handle > 0)
+            core_free(handle);
+        action = ACTION_REDRAW;
+    }
+    else if (action == ACTION_NONE)
+        action = ACTION_REDRAW;
+    return action;
+}
+
+static bool dbg_buflib_allocs(void)
+{
+    struct simplelist_info info;
+    simplelist_info_init(&info, "mem allocs", core_get_num_blocks(), NULL);
+    info.get_name = bf_getname;
+    info.action_callback = bf_action_cb;
+    info.timeout = HZ/2;
+    return simplelist_show_list(&info);
+}
 
 #if (CONFIG_PLATFORM & PLATFORM_NATIVE)
 static const char* dbg_partitions_getname(int selected_item, void *data,
@@ -2040,6 +2078,7 @@ static const struct the_menu_item menuitems[] = {
         { "pm histogram", peak_meter_histogram},
 #endif /* PM_DEBUG */
 #endif /* HAVE_LCD_BITMAP */
+        { "View buflib allocs", dbg_buflib_allocs },
 #ifndef SIMULATOR
 #if CONFIG_TUNER
         { "FM Radio", dbg_fm_radio },

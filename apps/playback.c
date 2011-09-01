@@ -24,7 +24,7 @@
 #include "system.h"
 #include "kernel.h"
 #include "panic.h"
-#include "buffer.h"
+#include "core_alloc.h"
 #include "sound.h"
 #include "ata.h"
 #include "usb.h"
@@ -40,6 +40,7 @@
 #include "pcmbuf.h"
 #include "playback.h"
 #include "misc.h"
+#include "settings.h"
 
 #ifdef HAVE_TAGCACHE
 #include "tagcache.h"
@@ -732,8 +733,19 @@ static void scratch_mem_init(void *mem)
     }
 }
 
-/* Set up the audio buffer for playback */
-static void audio_reset_buffer(void)
+static int audiobuf_handle;
+static size_t filebuflen;
+
+size_t audio_buffer_available(void)
+{
+    if (audiobuf_handle > 0) /* if allocated return what we got */
+        return filebuflen;
+    return core_available();
+}
+
+/* Set up the audio buffer for playback
+ * filebuflen must be pre-initialized with the maximum size */
+static void audio_reset_buffer_noalloc(void* filebuf)
 {
     /*
      * Layout audio buffer as follows:
@@ -743,16 +755,12 @@ static void audio_reset_buffer(void)
     /* see audio_get_recording_buffer if this is modified */
     logf("%s()", __func__);
 
-    /* release the buffer on behalf of any caller of audio_get_buffer() */
-    buffer_release_buffer(0);
-
     /* If the setup of anything allocated before the file buffer is
        changed, do check the adjustments after the buffer_alloc call
        as it will likely be affected and need sliding over */
 
     /* Initially set up file buffer as all space available */
-    size_t filebuflen, allocsize;
-    unsigned char *filebuf = buffer_get_buffer(&filebuflen);
+    size_t allocsize;
 
     /* Subtract whatever voice needs */
     allocsize = talkbuf_init(filebuf);
@@ -815,6 +823,70 @@ static void audio_reset_buffer(void)
 
 bufpanic:
     panicf("%s(): EOM (%zu > %zu)", __func__, allocsize, filebuflen);
+}
+
+
+/* Buffer must not move. */
+static int shrink_callback(int handle, unsigned hints, void* start, size_t old_size)
+{
+    long offset = audio_current_track()->offset;
+    int status = audio_status();
+    /* TODO: Do it without stopping playback, if possible */
+    /* don't call audio_hard_stop() as it frees this handle */
+    if (thread_self() == audio_thread_id)
+    {   /* inline case Q_AUDIO_STOP (audio_hard_stop() response
+         * if we're in the audio thread */
+        audio_stop_playback();
+        queue_clear(&audio_queue);
+    }
+    else
+        audio_queue_send(Q_AUDIO_STOP, 1);
+#ifdef PLAYBACK_VOICE
+    voice_stop();
+#endif
+    /* we should be free to change the buffer now */
+    size_t wanted_size = (hints & BUFLIB_SHRINK_SIZE_MASK);
+    ssize_t size = (ssize_t)old_size - wanted_size;
+    /* set final buffer size before calling audio_reset_buffer_noalloc() */
+    filebuflen = size;
+    switch (hints & BUFLIB_SHRINK_POS_MASK)
+    {
+        case BUFLIB_SHRINK_POS_BACK:
+            core_shrink(handle, start, size);
+            audio_reset_buffer_noalloc(start);
+            break;
+        case BUFLIB_SHRINK_POS_FRONT:
+            core_shrink(handle, start + wanted_size, size);
+            audio_reset_buffer_noalloc(start + wanted_size);
+            break;
+    }
+    if ((status & AUDIO_STATUS_PLAY) == AUDIO_STATUS_PLAY)
+    {
+        if (thread_self() == audio_thread_id)
+            audio_start_playback(offset, 0);  /* inline Q_AUDIO_PLAY */
+        else
+            audio_play(offset);
+    }
+
+    return BUFLIB_CB_OK;
+}
+
+static struct buflib_callbacks ops = {
+    .move_callback = NULL,
+    .shrink_callback = shrink_callback,
+};
+
+static void audio_reset_buffer(void)
+{
+    if (audiobuf_handle > 0)
+    {
+        core_free(audiobuf_handle);
+        audiobuf_handle = 0;
+    }
+    audiobuf_handle = core_alloc_maximum("audiobuf", &filebuflen, &ops);
+    unsigned char *filebuf = core_get_data(audiobuf_handle);
+
+    audio_reset_buffer_noalloc(filebuf);
 }
 
 /* Set the buffer margin to begin rebuffering when 'seconds' from empty */
@@ -3324,7 +3396,8 @@ void audio_hard_stop(void)
 #ifdef PLAYBACK_VOICE
     voice_stop();
 #endif
-    buffer_release_buffer(0);
+    if (audiobuf_handle > 0)
+        audiobuf_handle = core_free(audiobuf_handle);
 }
 
 /* Resume playback if paused */
@@ -3447,6 +3520,14 @@ unsigned char * audio_get_buffer(bool talk_buf, size_t *buffer_size)
         return NULL;
     }
 
+    /* make sure buffer is freed and re-allocated to simplify code below
+     * (audio_hard_stop() likely has done that already) */
+    if (audiobuf_handle > 0)
+        audiobuf_handle = core_free(audiobuf_handle);
+
+    audiobuf_handle = core_alloc_maximum("audiobuf", &filebuflen, &ops);
+    buf = core_get_data(audiobuf_handle);
+
     if (talk_buf || buffer_state == AUDIOBUF_STATE_TRASHED
            || !talk_voice_required())
     {
@@ -3464,27 +3545,24 @@ unsigned char * audio_get_buffer(bool talk_buf, size_t *buffer_size)
             talk_buffer_steal();
             buffer_state = AUDIOBUF_STATE_TRASHED;
         }
-        buf = buffer_get_buffer(buffer_size);
     }
     else
     {
+        logf("get buffer: audio");
         /* Safe to just return this if already AUDIOBUF_STATE_VOICED_ONLY or
            still AUDIOBUF_STATE_INITIALIZED */
         /* Skip talk buffer and move pcm buffer to end to maximize available
            contiguous memory - no audio running means voice will not need the
            swap space */
-        size_t siz, talkbuf_size;
-        logf("get buffer: audio");
-        /* call buffer_get_buffer() to make use of the locking mechanism */
-        buf = buffer_get_buffer(&siz);
+        size_t talkbuf_size;
         buf += talkbuf_size = talkbuf_init(buf);
-        siz -= talkbuf_size;
-        siz -= voicebuf_init(buf + siz);
-        *buffer_size = siz;
+        filebuflen -= talkbuf_size;
+        filebuflen -= voicebuf_init(buf + filebuflen);
 
         buffer_state = AUDIOBUF_STATE_VOICED_ONLY;
     }
 
+    *buffer_size = filebuflen;
     return buf;
 }
 
@@ -3492,11 +3570,8 @@ unsigned char * audio_get_buffer(bool talk_buf, size_t *buffer_size)
 /* Stop audio, voice and obtain all available buffer space */
 unsigned char * audio_get_recording_buffer(size_t *buffer_size)
 {
-    talk_buffer_steal();
     audio_hard_stop();
-
-    buffer_state = AUDIOBUF_STATE_TRASHED;
-    return buffer_get_buffer(buffer_size);
+    return audio_get_buffer(true, buffer_size);
 }
 #endif /* HAVE_RECORDING */
 
@@ -3738,14 +3813,11 @@ void audio_init(void)
 
     pcm_init();
 
-    codec_init_codec_api();
-
-    make_codec_thread();
+    codec_thread_init();
 
     /* This thread does buffer, so match its priority */
     audio_thread_id = create_thread(audio_thread, audio_stack,
-                  sizeof(audio_stack), CREATE_THREAD_FROZEN,
-                  audio_thread_name
+                  sizeof(audio_stack), 0, audio_thread_name
                   IF_PRIO(, MIN(PRIORITY_BUFFERING, PRIORITY_USER_INTERFACE))
                   IF_COP(, CPU));
 
@@ -3778,11 +3850,4 @@ void audio_init(void)
 #ifdef HAVE_DISK_STORAGE
     audio_set_buffer_margin(global_settings.buffer_margin);
 #endif
-
-    /* It's safe to let the threads run now */
-#ifdef PLAYBACK_VOICE
-    voice_thread_resume();
-#endif
-    codec_thread_resume();
-    thread_thaw(audio_thread_id);
 }

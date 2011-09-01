@@ -20,8 +20,6 @@
  ****************************************************************************/
 #include "plugin.h"
 
-
-
 /* All swcodec targets have BUTTON_SELECT apart from the H10 and M3 */
 
 #if CONFIG_KEYPAD == IRIVER_H10_PAD
@@ -52,7 +50,6 @@ static const struct opt_items boost_settings[2] = {
     { "No",    -1 },
     { "Yes",   -1 },
 };
-
 #endif
 
 /* Log functions copied from test_disk.c */
@@ -225,7 +222,6 @@ void close_wav(void)
 /* Returns buffer to malloc array. Only codeclib should need this. */
 static void* codec_get_buffer(size_t *size)
 {
-   DEBUGF("codec_get_buffer(%"PRIuPTR")\n",(uintptr_t)size);
    *size = CODEC_SIZE;
    return codec_mallocbuf;
 }
@@ -509,6 +505,12 @@ static enum codec_command_action get_command(intptr_t *param)
     (void)param;
 }
 
+/* Some codecs call this to determine whether they should loop. */
+static bool loop_track(void)
+{
+    return false;
+}
+
 static void set_offset(size_t value)
 {
     ci.id3->offset = value;
@@ -565,6 +567,7 @@ static void init_ci(void)
     ci.set_offset = set_offset;
     ci.configure = configure;
     ci.get_command = get_command;
+    ci.loop_track = loop_track;
 
     /* --- "Core" functions --- */
 
@@ -582,7 +585,6 @@ static void init_ci(void)
     ci.memmove = rb->memmove;
     ci.memcmp = rb->memcmp;
     ci.memchr = rb->memchr;
-    ci.strcasestr = rb->strcasestr;
 #if defined(DEBUG) || defined(SIMULATOR)
     ci.debugf = rb->debugf;
 #endif
@@ -591,7 +593,6 @@ static void init_ci(void)
 #endif
 
     ci.qsort = rb->qsort;
-    ci.global_settings = rb->global_settings;
 
 #ifdef RB_PROFILE
     ci.profile_thread = rb->profile_thread;
@@ -837,9 +838,6 @@ enum plugin_status plugin_start(const void* parameter)
     {
         SPEED_TEST = 0,
         SPEED_TEST_DIR,
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-        BOOST,
-#endif
         WRITE_WAV,
         SPEED_TEST_WITH_DSP,
         SPEED_TEST_DIR_WITH_DSP,
@@ -847,15 +845,15 @@ enum plugin_status plugin_start(const void* parameter)
         CHECKSUM,
         CHECKSUM_DIR,
         QUIT,
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        BOOST,
+#endif
     };
 
     MENUITEM_STRINGLIST(
         menu, "test_codec", NULL,
         "Speed test",
         "Speed test folder",
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-        "Boosting",
-#endif
         "Write WAV",
         "Speed test with DSP",
         "Speed test folder with DSP",
@@ -863,6 +861,9 @@ enum plugin_status plugin_start(const void* parameter)
         "Checksum",
         "Checksum folder",
         "Quit",
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
+        "Boosting",
+#endif
     );
     
 
@@ -874,8 +875,8 @@ menu:
 #endif 
 
     result = rb->do_menu(&menu, &selection, NULL, false);
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
 
+#ifdef HAVE_ADJUSTABLE_CPU_FREQ
     if (result == BOOST)
     {
         rb->set_option("Boosting", &boost, INT,
@@ -894,17 +895,18 @@ menu:
 
     scandir = 0;
 
-    if ((checksum = (result == CHECKSUM || result == CHECKSUM_DIR)))
-#ifdef HAVE_ADJUSTABLE_CPU_FREQ
-        result -= 7;
-#else
+    /* Map test runs with checksum calcualtion to standard runs 
+     * SPEED_TEST and SPEED_TEST_DIR and set the 'checksum' flag. */
+    if ((checksum = (result == CHECKSUM || 
+                     result == CHECKSUM_DIR)))
         result -= 6;
-#endif
 
-    if ((use_dsp = ((result >= SPEED_TEST_WITH_DSP)
-                   && (result <= WRITE_WAV_WITH_DSP)))) {
+    /* Map test runs with DSP to standard runs SPEED_TEST, 
+     * SPEED_TEST_DIR and WRITE_WAV and set the 'use_dsp' flag. */
+    if ((use_dsp = (result >= SPEED_TEST_WITH_DSP &&
+                    result <= WRITE_WAV_WITH_DSP)))
         result -= 3;
-    }
+
     if (result == SPEED_TEST) {
         wavinfo.fd = -1;
         log_init(false);

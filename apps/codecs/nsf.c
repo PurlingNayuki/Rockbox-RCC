@@ -20,7 +20,7 @@ static void set_codec_track(int t, int multitrack) {
     Nsf_start_track(&nsf_emu, t); 
 
     /* for REPEAT_ONE we disable track limits */
-    if (ci->global_settings->repeat_mode != REPEAT_ONE) {
+    if (!ci->loop_track()) {
         Track_set_fade(&nsf_emu, Track_length( &nsf_emu, t ) - 4000, 4000);
     }
     if (multitrack) ci->set_elapsed(t*1000); /* t is track no to display */
@@ -74,8 +74,8 @@ enum codec_status codec_run(void)
         return CODEC_ERROR;
     }
    
-    if ((err = Nsf_load(&nsf_emu, buf, ci->filesize))) {
-        DEBUGF("NSF: Nsf_load failed (%s)\n", err);
+    if ((err = Nsf_load_mem(&nsf_emu, buf, ci->filesize))) {
+        DEBUGF("NSF: Nsf_load_mem failed (%s)\n", err);
         return CODEC_ERROR;
     }
 
@@ -109,14 +109,14 @@ next_track:
             ci->seek_complete();
             
             /* Set fade again */
-            if (ci->global_settings->repeat_mode != REPEAT_ONE) {
+            if (!ci->loop_track()) {
                 Track_set_fade(&nsf_emu, Track_length( &nsf_emu, track ), 4000);
             }
         }
 
         /* Generate audio buffer */
         err = Nsf_play(&nsf_emu, CHUNK_SIZE, samples);
-        if (err || nsf_emu.track_ended) {
+        if (err || Track_ended(&nsf_emu)) {
             track++;
             if (track >= nsf_emu.track_count) break;
             goto next_track;

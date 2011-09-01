@@ -17,8 +17,8 @@ static struct Gbs_Emu gbs_emu;
 static void set_codec_track(int t) {
     Gbs_start_track(&gbs_emu, t); 
 
-    /* for REPEAT_ONE we disable track limits */
-    if (ci->global_settings->repeat_mode != REPEAT_ONE) {
+    /* for loop mode we disable track limits */
+    if (!ci->loop_track()) {
         Track_set_fade(&gbs_emu, Track_get_length( &gbs_emu, t ), 4000);
     }
     ci->set_elapsed(t*1000); /* t is track no to display */
@@ -67,8 +67,8 @@ enum codec_status codec_run(void)
         return CODEC_ERROR;
     }
    
-    if ((err = Gbs_load(&gbs_emu, buf, ci->filesize))) {
-        DEBUGF("GBS: Gbs_load failed (%s)\n", err);
+    if ((err = Gbs_load_mem(&gbs_emu, buf, ci->filesize))) {
+        DEBUGF("GBS: Gbs_load_mem failed (%s)\n", err);
         return CODEC_ERROR;
     }
 
@@ -95,7 +95,7 @@ next_track:
 
         /* Generate audio buffer */
         err = Gbs_play(&gbs_emu, CHUNK_SIZE, samples);
-        if (err || gbs_emu.track_ended) {
+        if (err || Track_ended(&gbs_emu)) {
             track++;
             if (track >= gbs_emu.track_count) break;
             goto next_track;

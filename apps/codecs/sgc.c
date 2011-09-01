@@ -23,7 +23,7 @@ static void set_codec_track(int t) {
     Sgc_start_track(&sgc_emu, t); 
 
     /* for REPEAT_ONE we disable track limits */
-    if (ci->global_settings->repeat_mode != REPEAT_ONE) {
+    if (!ci->loop_track()) {
         Track_set_fade(&sgc_emu, Track_get_length( &sgc_emu, t ), 4000);
     }
     ci->set_elapsed(t*1000); /* t is track no to display */
@@ -83,7 +83,7 @@ enum codec_status codec_run(void)
     }
    
     if ((err = Sgc_load_mem(&sgc_emu, buf, ci->filesize))) {
-        DEBUGF("SGC: Sgc_load failed (%s)\n", err);
+        DEBUGF("SGC: Sgc_load_mem failed (%s)\n", err);
         return CODEC_ERROR;
     }
 
@@ -110,7 +110,7 @@ next_track:
 
         /* Generate audio buffer */
         err = Sgc_play(&sgc_emu, CHUNK_SIZE, samples);
-        if (err || sgc_emu.track_ended) {
+        if (err || Track_ended(&sgc_emu)) {
             track++;
             if (track >= sgc_emu.track_count) break;
             goto next_track;

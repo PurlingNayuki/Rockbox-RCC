@@ -17,8 +17,8 @@ static struct Ay_Emu ay_emu;
 static void set_codec_track(int t, int multitrack) {
     Ay_start_track(&ay_emu, t); 
 
-    /* for REPEAT_ONE we disable track limits */
-    if (ci->global_settings->repeat_mode != REPEAT_ONE) {
+    /* for loop mode we disable track limits */
+    if (!ci->loop_track()) {
         Track_set_fade(&ay_emu, Track_get_length( &ay_emu, t ) - 4000, 4000);
     }
     if (multitrack) ci->set_elapsed(t*1000); /* t is track no to display */
@@ -74,7 +74,7 @@ enum codec_status codec_run(void)
     }
    
     if ((err = Ay_load_mem(&ay_emu, buf, ci->filesize))) {
-        DEBUGF("AY: Ay_load failed (%s)\n", err);
+        DEBUGF("AY: Ay_load_mem failed (%s)\n", err);
         return CODEC_ERROR;
     }
 
@@ -111,14 +111,14 @@ next_track:
             ci->seek_complete();
             
             /* Set fade again */
-            if (ci->global_settings->repeat_mode != REPEAT_ONE) {
+            if (!ci->loop_track()) {
                 Track_set_fade(&ay_emu, Track_get_length( &ay_emu, track ) - 4000, 4000);
             }
         }
 
         /* Generate audio buffer */
         err = Ay_play(&ay_emu, CHUNK_SIZE, samples);
-        if (err || ay_emu.track_ended) {
+        if (err || Track_ended(&ay_emu)) {
             track++;
             if (track >= ay_emu.track_count) break;
             goto next_track;
