@@ -1025,7 +1025,7 @@
   </source>
   <dest>
     *: none
-    swcodec: "浏览均衡器设置"
+    swcodec: "浏览均衡���设置"
   </dest>
   <voice>
     *: none
@@ -12949,5 +12949,39 @@
   </dest>
   <voice>
     *: "要保存修改吗？
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SURROUND
+  desc: in the sound settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "Surround"
+  </source>
+  <dest>
+    *: none
+    swcodec: "差分环绕"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "surround"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_ANTIALIAS_WARM
+  desc: in the sound settings menu
+  user: core
+  <source>
+    *: none
+    swcodec: "AntiAlias"
+  </source>
+  <dest>
+    *: none
+    swcodec: "反锯齿(Tube)"
+  </dest>
+  <voice>
+    *: none
+    swcodec: "tube"
   </voice>
 </phrase>
