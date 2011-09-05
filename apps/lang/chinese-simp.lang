@@ -1025,7 +1025,7 @@
   </source>
   <dest>
     *: none
-    swcodec: "浏览均衡���设置"
+    swcodec: "浏览均衡器设置"
   </dest>
   <voice>
     *: none
