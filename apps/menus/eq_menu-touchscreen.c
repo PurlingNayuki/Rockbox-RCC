@@ -55,127 +55,6 @@
  * Utility functions
  */
 
-const char* eq_q_format(char* buffer, size_t buffer_size, int value, const char* unit)
-{
-    snprintf(buffer, buffer_size, "%d.%d %s", value / EQ_USER_DIVISOR,
-         value % EQ_USER_DIVISOR, unit);
-    return buffer;
-}
-
-const char* eq_precut_format(char* buffer, size_t buffer_size, int value, const char* unit)
-{
-    snprintf(buffer, buffer_size, "%s%d.%d %s", value == 0 ? " " : "-",
-        value / EQ_USER_DIVISOR, value % EQ_USER_DIVISOR, unit);
-    return buffer;
-}
-
-/*
- * Settings functions
- */
-static void eq_apply(void)
-{
-    int i;
-    dsp_set_eq(global_settings.eq_enabled); 
-    dsp_set_eq_precut(global_settings.eq_precut);    
-    /* Update all bands */
-    for(i = 0; i < 5; i++) {
-        dsp_set_eq_coefs(i);
-    }
-}
-
-static int eq_setting_callback(int action, const struct menu_item_ex *this_item)
-{
-    switch (action)
-    {
-        case ACTION_ENTER_MENUITEM:
-            action = lowlatency_callback(action, this_item);
-            break;
-        case ACTION_EXIT_MENUITEM:
-            eq_apply();
-            action = lowlatency_callback(action, this_item);
-            break;
-    }
-
-    return action;
-}
-MENUITEM_SETTING(eq_enable, &global_settings.eq_enabled, eq_setting_callback);
-MENUITEM_SETTING(eq_precut, &global_settings.eq_precut, eq_setting_callback);
-
-MENUITEM_SETTING(cutoff_0, &global_settings.eq_band0_cutoff, eq_setting_callback);
-MENUITEM_SETTING(cutoff_1, &global_settings.eq_band1_cutoff, eq_setting_callback);
-MENUITEM_SETTING(cutoff_2, &global_settings.eq_band2_cutoff, eq_setting_callback);
-MENUITEM_SETTING(cutoff_3, &global_settings.eq_band3_cutoff, eq_setting_callback);
-MENUITEM_SETTING(cutoff_4, &global_settings.eq_band4_cutoff, eq_setting_callback);
-
-MENUITEM_SETTING(q_0, &global_settings.eq_band0_q, eq_setting_callback);
-MENUITEM_SETTING(q_1, &global_settings.eq_band1_q, eq_setting_callback);
-MENUITEM_SETTING(q_2, &global_settings.eq_band2_q, eq_setting_callback);
-MENUITEM_SETTING(q_3, &global_settings.eq_band3_q, eq_setting_callback);
-MENUITEM_SETTING(q_4, &global_settings.eq_band4_q, eq_setting_callback);
-
-MENUITEM_SETTING(gain_0, &global_settings.eq_band0_gain, eq_setting_callback);
-MENUITEM_SETTING(gain_1, &global_settings.eq_band1_gain, eq_setting_callback);
-MENUITEM_SETTING(gain_2, &global_settings.eq_band2_gain, eq_setting_callback);
-MENUITEM_SETTING(gain_3, &global_settings.eq_band3_gain, eq_setting_callback);
-MENUITEM_SETTING(gain_4, &global_settings.eq_band4_gain, eq_setting_callback);
-
-static char* gainitem_get_name(int selected_item, void * data, char *buffer)
-{
-    (void)selected_item;
-    int *setting = (int*)data;
-    snprintf(buffer, MAX_PATH, str(LANG_EQUALIZER_GAIN_ITEM), *setting);
-    return buffer;
-}
-
-static int gainitem_speak_item(int selected_item, void * data)
-{
-    (void)selected_item;
-    int *setting = (int*)data;
-    talk_number(*setting, false);
-    talk_id(LANG_EQUALIZER_GAIN_ITEM, true);
-    return 0;
-}
-
-static int do_option(void * param)
-{
-    const struct menu_item_ex *setting = (const struct menu_item_ex*)param;
-    lowlatency_callback(ACTION_ENTER_MENUITEM, setting);
-    do_setting_from_menu(setting, NULL);
-    eq_apply();
-    lowlatency_callback(ACTION_EXIT_MENUITEM, setting);
-    return 0;
-}
-
-MENUITEM_FUNCTION_DYNTEXT(gain_item_0, MENU_FUNC_USEPARAM,
-                          do_option, (void*)&gain_0, 
-                          gainitem_get_name, gainitem_speak_item,
-                          &global_settings.eq_band0_cutoff, NULL, Icon_NOICON);
-MENUITEM_FUNCTION_DYNTEXT(gain_item_1, MENU_FUNC_USEPARAM,
-                          do_option, (void*)&gain_1,
-                          gainitem_get_name, gainitem_speak_item,
-                          &global_settings.eq_band1_cutoff, NULL, Icon_NOICON);
-MENUITEM_FUNCTION_DYNTEXT(gain_item_2, MENU_FUNC_USEPARAM,
-                          do_option, (void*)&gain_2,
-                          gainitem_get_name, gainitem_speak_item,
-                          &global_settings.eq_band2_cutoff, NULL, Icon_NOICON);
-MENUITEM_FUNCTION_DYNTEXT(gain_item_3, MENU_FUNC_USEPARAM,
-                          do_option, (void*)&gain_3,
-                          gainitem_get_name, gainitem_speak_item,
-                          &global_settings.eq_band3_cutoff, NULL, Icon_NOICON);
-MENUITEM_FUNCTION_DYNTEXT(gain_item_4, MENU_FUNC_USEPARAM,
-                          do_option, (void*)&gain_4,
-                          gainitem_get_name, gainitem_speak_item,
-                          &global_settings.eq_band4_cutoff, NULL, Icon_NOICON);
-                                    
-MAKE_MENU(gain_menu, ID2P(LANG_EQUALIZER_GAIN), NULL, Icon_NOICON, &gain_item_0, 
-            &gain_item_1, &gain_item_2, &gain_item_3, &gain_item_4);
-
-static const struct menu_item_ex *band_items[3][3] = {
-    { &cutoff_1, &q_1, &gain_1 },
-    { &cutoff_2, &q_2, &gain_2 },
-    { &cutoff_3, &q_3, &gain_3 }
-};
-
 /* cutoff limits min and max for each eq band              */
 /* required for better setting resolution on a touchscreen */
 const int cutoff_lim[2][5] = {
@@ -205,61 +84,6 @@ struct eq_screen_data{
         short width;
     }band;
 };
-
-static char* centerband_get_name(int selected_item, void * data, char *buffer)
-{
-    (void)selected_item;
-    int band = (intptr_t)data;
-    snprintf(buffer, MAX_PATH, str(LANG_EQUALIZER_BAND_PEAK), band);
-    return buffer;
-}
-
-static int centerband_speak_item(int selected_item, void * data)
-{
-    (void)selected_item;
-    int band = (intptr_t)data;
-    talk_id(LANG_EQUALIZER_BAND_PEAK, false);
-    talk_number(band, true);
-    return 0;
-}
-
-static int do_center_band_menu(void* param)
-{
-    int band = (intptr_t)param;
-    struct menu_item_ex menu;
-    struct menu_callback_with_desc cb_and_desc;
-    char desc[MAX_PATH];
-    
-    cb_and_desc.menu_callback = NULL;
-    snprintf(desc, MAX_PATH, str(LANG_EQUALIZER_BAND_PEAK), band);
-    cb_and_desc.desc = desc;
-    cb_and_desc.icon_id = Icon_EQ;
-    menu.flags = MT_MENU|(3<<MENU_COUNT_SHIFT)|MENU_HAS_DESC;
-    menu.submenus = band_items[band-1];
-    menu.callback_and_desc = &cb_and_desc;
-    do_menu(&menu, NULL, NULL, false);
-    return 0;
-}
-
-MAKE_MENU(band_0_menu, ID2P(LANG_EQUALIZER_BAND_LOW_SHELF), NULL, 
-            Icon_EQ, &cutoff_0, &q_0, &gain_0);
-MENUITEM_FUNCTION_DYNTEXT(band_1_menu, MENU_FUNC_USEPARAM,
-                          do_center_band_menu, (void*)1,
-                          centerband_get_name, centerband_speak_item,
-                          (void*)1, NULL, Icon_EQ);
-MENUITEM_FUNCTION_DYNTEXT(band_2_menu, MENU_FUNC_USEPARAM, 
-                          do_center_band_menu, (void*)2, 
-                          centerband_get_name, centerband_speak_item,
-                          (void*)2, NULL, Icon_EQ);
-MENUITEM_FUNCTION_DYNTEXT(band_3_menu, MENU_FUNC_USEPARAM, 
-                          do_center_band_menu, (void*)3, 
-                          centerband_get_name, centerband_speak_item,
-                          (void*)3, NULL, Icon_EQ);
-MAKE_MENU(band_4_menu, ID2P(LANG_EQUALIZER_BAND_HIGH_SHELF), NULL, 
-            Icon_EQ, &cutoff_4, &q_4, &gain_4);
-
-MAKE_MENU(advanced_eq_menu_, ID2P(LANG_EQUALIZER_ADVANCED), NULL, Icon_EQ,
-            &band_0_menu, &band_1_menu, &band_2_menu, &band_3_menu, &band_4_menu);
 
 
 enum eq_slider_mode {
@@ -686,7 +510,7 @@ static bool init_eq_screen(struct screen * screen,
 
 
 /* Provides a graphical means of editing the EQ settings */
-bool eq_menu_graphical(void)
+bool eq_menu_graphical_touchscreen(void)
 {
     bool exit_request = false;
     bool result = true;
@@ -1009,33 +833,3 @@ bool eq_menu_graphical(void)
     }
     return result;
 }
-
-static bool eq_save_preset(void)
-{
-    /* make sure that the eq is enabled for setting saving */
-    bool enabled = global_settings.eq_enabled;
-    global_settings.eq_enabled = true;
-    
-    bool result = settings_save_config(SETTINGS_SAVE_EQPRESET);
-    
-    global_settings.eq_enabled = enabled;
-
-    return result;
-}
-
-/* Allows browsing of preset files */
-static struct browse_folder_info eqs = { EQS_DIR, SHOW_CFG };
-
-MENUITEM_FUNCTION(eq_graphical, 0, ID2P(LANG_EQUALIZER_GRAPHICAL),
-                    (int(*)(void))eq_menu_graphical, NULL, lowlatency_callback, 
-                    Icon_EQ);
-MENUITEM_FUNCTION(eq_save, 0, ID2P(LANG_EQUALIZER_SAVE),
-                    (int(*)(void))eq_save_preset, NULL, NULL, Icon_NOICON);
-MENUITEM_FUNCTION(eq_browse, MENU_FUNC_USEPARAM, ID2P(LANG_EQUALIZER_BROWSE),
-                    browse_folder, (void*)&eqs, lowlatency_callback,
-                    Icon_NOICON);
-
-MAKE_MENU(equalizer_menu, ID2P(LANG_EQUALIZER), NULL, Icon_EQ,
-        &eq_enable, &eq_graphical, &eq_precut, &gain_menu, 
-        &advanced_eq_menu_, &eq_save, &eq_browse);
-

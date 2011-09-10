@@ -28,10 +28,9 @@
 #ifdef HAVE_TOUCHSCREEN
 #define EQ_CUTOFF_MIN(a)     cutoff_lim[0][a]
 #define EQ_CUTOFF_MAX(b)     cutoff_lim[1][b]
-#else
-#define EQ_CUTOFF_MIN        20
-#define EQ_CUTOFF_MAX     22040
 #endif
+#define _EQ_CUTOFF_MIN        20
+#define _EQ_CUTOFF_MAX     22040
 
 #define EQ_CUTOFF_STEP       10
 #define EQ_CUTOFF_FAST_STEP 100
@@ -47,6 +46,8 @@
 #define EQ_USER_DIVISOR      10
 
 bool eq_browse_presets(void);
+bool eq_menu_graphical_button(void);
+bool eq_menu_graphical_touchscreen(void);
 bool eq_menu_graphical(void);
 
 /* utility functions for settings_list.c */

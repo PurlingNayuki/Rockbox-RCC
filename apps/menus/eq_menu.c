@@ -261,7 +261,7 @@ static int draw_eq_slider(struct screen * screen, int x, int y,
         max_item = q + EQ_Q_STEP - EQ_Q_MIN;
         break;        
     case CUTOFF:
-        steps = EQ_CUTOFF_MAX - EQ_CUTOFF_MIN;
+        steps = _EQ_CUTOFF_MAX - _EQ_CUTOFF_MIN;
         min_item = cutoff - EQ_CUTOFF_FAST_STEP * 2;
         max_item = cutoff + EQ_CUTOFF_FAST_STEP * 2;
         break;         
@@ -379,7 +379,24 @@ static void draw_eq_sliders(struct screen * screen, int x, int y,
 }
 
 /* Provides a graphical means of editing the EQ settings */
+/* Auto select which type of menu to display */
 bool eq_menu_graphical(void)
+{    
+    switch(touchscreen_get_mode())
+    {
+        case TOUCHSCREEN_POINT:
+            return eq_menu_graphical_touchscreen();
+            break;
+        case TOUCHSCREEN_BUTTON:
+            return eq_menu_graphical_button();
+            break;
+        default:
+            return false;
+    }
+    
+    return false;
+}
+bool eq_menu_graphical_button(void)
 {
     bool exit_request = false;
     bool result = true;
@@ -448,8 +465,8 @@ bool eq_menu_graphical(void)
 
                 step = EQ_CUTOFF_STEP;
                 fast_step = EQ_CUTOFF_FAST_STEP;
-                min = EQ_CUTOFF_MIN;
-                max = EQ_CUTOFF_MAX;
+                min = _EQ_CUTOFF_MIN;
+                max = _EQ_CUTOFF_MAX;
 
                 snprintf(buf, sizeof(buf), str(LANG_SYSFONT_EQUALIZER_EDIT_MODE),
                          str(LANG_SYSFONT_EQUALIZER_BAND_CUTOFF), "(Hz)");
@@ -592,9 +609,15 @@ static bool eq_save_preset(void)
 /* Allows browsing of preset files */
 static struct browse_folder_info eqs = { EQS_DIR, SHOW_CFG };
 
+#ifdef HAVE_TOUCHSCREEN
 MENUITEM_FUNCTION(eq_graphical, 0, ID2P(LANG_EQUALIZER_GRAPHICAL),
                     (int(*)(void))eq_menu_graphical, NULL, lowlatency_callback, 
                     Icon_EQ);
+#else
+MENUITEM_FUNCTION(eq_graphical, 0, ID2P(LANG_EQUALIZER_GRAPHICAL),
+                    (int(*)(void))eq_menu_graphical_button, NULL, lowlatency_callback, 
+                    Icon_EQ);
+#endif
 MENUITEM_FUNCTION(eq_save, 0, ID2P(LANG_EQUALIZER_SAVE),
                     (int(*)(void))eq_save_preset, NULL, NULL, Icon_NOICON);
 MENUITEM_FUNCTION(eq_browse, MENU_FUNC_USEPARAM, ID2P(LANG_EQUALIZER_BROWSE),
