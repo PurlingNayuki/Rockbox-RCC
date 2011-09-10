@@ -231,6 +231,7 @@ void settings_display(void);
 enum optiontype { INT, BOOL };
 
 const struct settings_list* find_setting(const void* variable, int *id);
+const struct settings_list* find_setting_by_cfgname(const char* name, int *id);
 bool cfg_int_to_string(int setting_id, int val, char* buf, int buf_len);
 bool cfg_string_to_int(int setting_id, int* out, const char* str);
 bool cfg_to_string(int setting_id, char* buf, int buf_len);
@@ -778,6 +779,10 @@ struct user_settings
 #ifdef USB_ENABLE_HID
     bool usb_hid;
     int usb_keypad_mode;
+#endif
+
+#if defined(USB_ENABLE_STORAGE) && defined(HAVE_MULTIDRIVE)
+    bool usb_skip_first_drive;
 #endif
 
 #ifdef HAVE_LCD_BITMAP

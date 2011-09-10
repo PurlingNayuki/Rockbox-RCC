@@ -180,6 +180,7 @@ int FAR_Load(int curious)
 	FARSAMPLE s;
 	FARNOTE *crow;
 	UBYTE smap[8];
+    (void)curious;
 
 	/* try to read module header (first part) */
 	_mm_read_UBYTES(mh1->id,4,modreader);
@@ -237,12 +238,12 @@ int FAR_Load(int curious)
 	if(!AllocPatterns()) return 0;
 
 	for(t=0;t<of.numpat;t++) {
-		UBYTE rows=0,tempo;
+		UBYTE rows=0/* ,tempo */;
 
 		memset(pat,0,256*16*4*sizeof(FARNOTE));
 		if(mh2->patsiz[t]) {
 			rows  = _mm_read_UBYTE(modreader);
-			tempo = _mm_read_UBYTE(modreader);
+			/* tempo = */ (void)_mm_read_UBYTE(modreader);
 
 			crow = pat;
 			/* file often allocates 64 rows even if there are less in pattern */

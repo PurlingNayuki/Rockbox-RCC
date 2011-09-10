@@ -25,6 +25,7 @@
 #include "config.h"
 #include "icon.h"
 #include "screen_access.h"
+#include "skin_engine/skin_engine.h"
 
 #define SCROLLBAR_WIDTH global_settings.scrollbar_width
 
@@ -173,6 +174,27 @@ extern bool gui_synclist_item_is_onscreen(struct gui_synclist *lists,
 extern bool gui_synclist_do_button(struct gui_synclist * lists,
                                        int *action,
                                        enum list_wrap);
+#if defined(HAVE_LCD_BITMAP) && !defined(PLUGIN)
+struct listitem_viewport_cfg {
+    struct wps_data *data;
+    char*   label;
+    int     width;
+    int     height;
+    int     xmargin;
+    int     ymargin;
+    bool    tile;
+    struct skin_viewport selected_item_vp;
+};
+bool skinlist_draw(struct screen *display, struct gui_synclist *list);
+bool skinlist_is_selected_item(void);
+void skinlist_set_cfg(enum screen_type screen,
+                      struct listitem_viewport_cfg *cfg);
+const char* skinlist_get_item_text(void);
+enum themable_icons skinlist_get_item_icon(void);
+bool skinlist_needs_scrollbar(enum screen_type screen);
+void skinlist_get_scrollbar(int* nb_item, int* first_shown, int* last_shown);
+int skinlist_get_line_count(enum screen_type screen, struct gui_synclist *list);
+#endif
 
 #if  defined(HAVE_TOUCHSCREEN)
 /* this needs to be fixed if we ever get more than 1 touchscreen on a target */
@@ -213,10 +235,14 @@ struct simplelist_info {
         /* action_callback notes:
             action == the action pressed by the user 
                 _after_ gui_synclist_do_button returns.
-            lists == the lists sturct so the callack can get selection and count etc. */
+            lists == the lists struct so the callback can get selection and count etc. */
+    enum themable_icons title_icon;
     list_get_icon *get_icon; /* can be NULL */
     list_get_name *get_name; /* NULL if you're using simplelist_addline() */
     list_speak_item *get_talk; /* can be NULL to not speak */
+#ifdef HAVE_LCD_COLOR
+    list_get_color *get_color;
+#endif
     void *callback_data; /* data for callbacks */
 };
 
@@ -242,9 +268,11 @@ void simplelist_addline(int line_number, const char *fmt, ...);
     info.hide_selection = false;
     info.scroll_all = false;
     info.action_callback = NULL;
+    info.title_icon = Icon_NOICON;
     info.get_icon = NULL;
     info.get_name = NULL;
     info.get_voice = NULL;
+    info.get_color = NULL;
     info.timeout = HZ/10;
     info.selection = 0;
 */

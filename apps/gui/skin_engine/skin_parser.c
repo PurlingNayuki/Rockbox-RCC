@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "config.h"
+#include "core_alloc.h"
 #include "file.h"
 #include "misc.h"
 #include "plugin.h"
@@ -364,6 +365,7 @@ static int parse_image_load(struct skin_element *element,
     img->always_display = false;
     img->display = -1;
     img->using_preloaded_icons = false;
+    img->buflib_handle = -1;
 
     /* save current viewport */
     img->vp = &curr_vp->vp;
@@ -482,6 +484,34 @@ static int parse_viewport_gradient_setup(struct skin_element *element,
     return 0; 
 }
 #endif
+
+
+static int parse_listitemviewport(struct skin_element *element,
+                                  struct wps_token *token,
+                                  struct wps_data *wps_data)
+{
+#ifndef __PCTOOL__
+    struct listitem_viewport_cfg *cfg = 
+        (struct listitem_viewport_cfg *)skin_buffer_alloc(
+                                sizeof(struct listitem_viewport_cfg));
+    if (!cfg)
+        return -1;
+    cfg->data = wps_data;
+    cfg->tile = false;
+    cfg->label = element->params[0].data.text;
+    cfg->width = -1;
+    cfg->height = -1;
+    if (!isdefault(&element->params[1]))
+        cfg->width = element->params[1].data.number;
+    if (!isdefault(&element->params[2]))
+        cfg->height = element->params[2].data.number;
+    if (element->params_count > 3 &&
+        !strcmp(element->params[3].data.text, "tile"))
+        cfg->tile = true;
+    token->value.data = (void*)cfg;
+#endif
+    return 0;
+}
 
 #if (LCD_DEPTH > 1) || (defined(HAVE_REMOTE_LCD) && (LCD_REMOTE_DEPTH > 1))
 static int parse_viewporttextstyle(struct skin_element *element,
@@ -620,13 +650,8 @@ static int parse_setting_and_lang(struct skin_element *element,
     }
     else
     {
-        /* Find the setting */
-        for (i=0; i<nb_settings; i++)
-            if (settings[i].cfg_name &&
-                !strcmp(settings[i].cfg_name, temp))
-                break;
 #ifndef __PCTOOL__
-        if (i == nb_settings)
+        if (find_setting_by_cfgname(temp, &i) == NULL)
             return WPS_ERROR_INVALID_PARAM;
 #endif
     }
@@ -862,6 +887,7 @@ static int parse_progressbar_tag(struct skin_element* element,
             img->always_display = false;
             img->display = -1;
             img->using_preloaded_icons = false;
+            img->buflib_handle = -1;
             img->vp = &curr_vp->vp;
             struct skin_token_list *item = 
                     (struct skin_token_list *)new_skin_token_list_item(NULL, img);
@@ -882,6 +908,8 @@ static int parse_progressbar_tag(struct skin_element* element,
         token->type = SKIN_TOKEN_PEAKMETER_LEFTBAR;
     else if (token->type == SKIN_TOKEN_PEAKMETER_RIGHT)
         token->type = SKIN_TOKEN_PEAKMETER_RIGHTBAR;
+    else if (token->type == SKIN_TOKEN_LIST_NEEDS_SCROLLBAR)
+        token->type = SKIN_TOKEN_LIST_SCROLLBAR;
     pb->type = token->type;
         
     return 0;
@@ -1144,17 +1172,15 @@ static const struct touchaction touchactions[] = {
 static int touchregion_setup_setting(struct skin_element *element, int param_no,
                                      struct touchregion *region)
 {
+#ifndef __PCTOOL__
     int p = param_no;
     char *name = element->params[p++].data.text;
     int j;
-    /* Find the setting */
-    for (j=0; j<nb_settings; j++)
-        if (settings[j].cfg_name &&
-            !strcmp(settings[j].cfg_name, name))
-            break;
-    if (j==nb_settings)
+
+    region->setting_data.setting = find_setting_by_cfgname(name, &j);
+    if (region->setting_data.setting == NULL)
         return WPS_ERROR_INVALID_PARAM;
-    region->setting_data.setting = (void*)&settings[j];
+
     if (region->action == ACTION_SETTINGS_SET)
     {
         char* text;
@@ -1163,7 +1189,7 @@ static int touchregion_setup_setting(struct skin_element *element, int param_no,
             &region->setting_data;
         if (element->params_count < p+1)
             return -1;
-#ifndef __PCTOOL__
+
         text = element->params[p++].data.text;
         switch (settings[j].flags&F_T_MASK)
         {
@@ -1198,9 +1224,10 @@ static int touchregion_setup_setting(struct skin_element *element, int param_no,
         default:
             return -1;
         }
-#endif /* __PCTOOL__ */
     }
     return p-param_no;
+#endif /* __PCTOOL__ */
+    return 0;
 }
 
 static int parse_touchregion(struct skin_element *element,
@@ -1364,10 +1391,20 @@ static bool check_feature_tag(const int type)
  **/
 static void skin_data_reset(struct wps_data *wps_data)
 {
-    wps_data->tree = NULL;
 #ifdef HAVE_LCD_BITMAP
+#ifndef __PCTOOL__
+    struct skin_token_list *list = wps_data->images;
+    while (list)
+    {
+        struct gui_img *img = (struct gui_img*)list->token->value.data;
+        if (img->buflib_handle > 0)
+            core_free(img->buflib_handle);
+        list = list->next;
+    }
+#endif
     wps_data->images = NULL;
 #endif
+    wps_data->tree = NULL;
 #if LCD_DEPTH > 1 || defined(HAVE_REMOTE_LCD) && LCD_REMOTE_DEPTH > 1
     if (wps_data->backdrop_id >= 0)
         skin_backdrop_unload(wps_data->backdrop_id);
@@ -1405,11 +1442,33 @@ static void skin_data_reset(struct wps_data *wps_data)
 }
 
 #ifdef HAVE_LCD_BITMAP
-static bool load_skin_bmp(struct wps_data *wps_data, struct bitmap *bitmap, char* bmpdir)
+#ifndef __PCTOOL__
+static int currently_loading_handle = -1;
+static int buflib_move_callback(int handle, void* current, void* new)
+{
+    (void)current;
+    (void)new;
+    if (handle == currently_loading_handle)
+        return BUFLIB_CB_CANNOT_MOVE;
+    return BUFLIB_CB_OK;
+}
+static struct buflib_callbacks buflib_ops = {buflib_move_callback, NULL};
+static void lock_handle(int handle)
+{
+    currently_loading_handle = handle;
+}
+static void unlock_handle(void)
+{
+    currently_loading_handle = -1;
+}
+#endif
+
+static int load_skin_bmp(struct wps_data *wps_data, struct bitmap *bitmap, char* bmpdir)
 {
     (void)wps_data; /* only needed for remote targets */
     char img_path[MAX_PATH];
     int fd;
+    int handle;
     get_image_filename(bitmap->data, bmpdir,
                        img_path, sizeof(img_path));
 
@@ -1426,35 +1485,44 @@ static bool load_skin_bmp(struct wps_data *wps_data, struct bitmap *bitmap, char
     if (fd < 0)
     {
         DEBUGF("Couldn't open %s\n", img_path);
-        return false;
+        return fd;
     }
+#ifndef __PCTOOL__
     size_t buf_size = read_bmp_fd(fd, bitmap, 0, 
-                                    format|FORMAT_RETURN_SIZE, NULL);  
-    char* imgbuf = (char*)skin_buffer_alloc(buf_size);
-    if (!imgbuf)
+                                    format|FORMAT_RETURN_SIZE, NULL);
+    handle = core_alloc_ex(bitmap->data, buf_size, &buflib_ops);
+    if (handle < 0)
     {
 #ifndef APPLICATION
         DEBUGF("Not enough skin buffer: need %zd more.\n", 
                 buf_size - skin_buffer_freespace());
 #endif
         close(fd);
-        return NULL;
+        return handle;
     }
     lseek(fd, 0, SEEK_SET);
-    bitmap->data = imgbuf;
+    lock_handle(handle);
+    bitmap->data = core_get_data(handle);
     int ret = read_bmp_fd(fd, bitmap, buf_size, format, NULL);
-
+    bitmap->data = NULL; /* do this to force a crash later if the 
+                            caller doesnt call core_get_data() */
+    unlock_handle();
     close(fd);
     if (ret > 0)
     {
-        return true;
+        return handle;
     }
     else
     {
         /* Abort if we can't load an image */
         DEBUGF("Couldn't load '%s'\n", img_path);
-        return false;
+        core_free(handle);
+        return -1;
     }
+#else /* !__PCTOOL__ */
+    close(fd);
+    return 1;
+#endif
 }
 
 static bool load_skin_bitmaps(struct wps_data *wps_data, char *bmpdir)
@@ -1476,7 +1544,8 @@ static bool load_skin_bitmaps(struct wps_data *wps_data, char *bmpdir)
             }
             else
             {
-                img->loaded = load_skin_bmp(wps_data, &img->bm, bmpdir);
+                img->buflib_handle = load_skin_bmp(wps_data, &img->bm, bmpdir);
+                img->loaded = img->buflib_handle >= 0;
                 if (img->loaded)
                     img->subimage_height = img->bm.height / img->num_subimages;
                 else
@@ -1724,6 +1793,7 @@ static int skin_element_callback(struct skin_element* element, void* data)
                 case SKIN_TOKEN_PLAYER_PROGRESSBAR:
                 case SKIN_TOKEN_PEAKMETER_LEFT:
                 case SKIN_TOKEN_PEAKMETER_RIGHT:
+                case SKIN_TOKEN_LIST_NEEDS_SCROLLBAR:
 #ifdef HAVE_RADIO_RSSI
                 case SKIN_TOKEN_TUNER_RSSI:
 #endif
@@ -1788,6 +1858,9 @@ static int skin_element_callback(struct skin_element* element, void* data)
                 case SKIN_TOKEN_IMAGE_PRELOAD:
                 case SKIN_TOKEN_IMAGE_DISPLAY:
                     function = parse_image_load;
+                    break;
+                case SKIN_TOKEN_LIST_ITEM_CFG:
+                    function = parse_listitemviewport;
                     break;
 #endif
 #ifdef HAVE_TOUCHSCREEN

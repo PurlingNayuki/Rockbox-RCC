@@ -149,26 +149,30 @@ findtool(){
 # scan the $PATH for sdl-config - check whether for a (cross-)win32
 # sdl as requested
 findsdl(){
-  file="sdl-config"
+  # sdl-config might (not) be prefixed for cross compiles so try both.
+  files="sdl-config:${CROSS}sdl-config"
   winbuild="$1"
 
   IFS=":"
-  for path in $PATH
+  for file in $files
   do
-    #echo "checks for $file in $path" >&2
-    if test -f "$path/$file"; then
-      if [ "0" != `$path/$file --libs |grep -c mwindows` ]; then
-        if [ "yes" = "${winbuild}" ]; then
-          echo "$path/$file"
-          return
-        fi
-      else
-        if [ "yes" != "${winbuild}" ]; then
-          echo "$path/$file"
-          return
+    for path in $PATH
+    do
+      #echo "checks for $file in $path" >&2
+      if test -f "$path/$file"; then
+        if [ "0" != `$path/$file --libs |grep -c mwindows` ]; then
+          if [ "yes" = "${winbuild}" ]; then
+            echo "$path/$file"
+            return
+          fi
+        else
+          if [ "yes" != "${winbuild}" ]; then
+            echo "$path/$file"
+            return
+          fi
         fi
       fi
-    fi
+    done
   done
 }
 
@@ -235,6 +239,7 @@ simcc () {
    LDOPTS="$LDOPTS -mconsole"
    output="$output.exe"
    winbuild="yes"
+   CROSS=${CROSS:-"i586-mingw32msvc-"}
    SHARED_CFLAGS=''
  else
  case $uname in
@@ -362,7 +367,7 @@ EOF
  else
    # We are crosscompiling
    # add cross-compiler option(s)
-   prefixtools i586-mingw32msvc-
+   prefixtools $CROSS
    LDOPTS="$LDOPTS -mconsole"
    fibers=`check_fiber`
    output="rockboxui.exe"
@@ -657,7 +662,7 @@ androidcc () {
         echo "environment variable point to the root directory of the Android NDK."
         exit
     fi
-    buildhost=`uname | tr [:upper:] [:lower:]`
+    buildhost=$(uname | tr "[:upper:]" "[:lower:]")
     gccchoice="4.4.3"
     gcctarget="arm-linux-androideabi-"
     gccprefix=$ANDROID_NDK_PATH/toolchains/$gcctarget$gccchoice/prebuilt/$buildhost-x86
@@ -3238,6 +3243,9 @@ case $modelname in
   sansac200)
      gdbstub=", (E)raser"
      ;;
+  sansae200)
+     gdbstub=", (E)raser"
+     ;;
   *)
      ;;
 esac
@@ -3259,20 +3267,9 @@ fi
     [Ee])
       appsdir='$(ROOTDIR)/bootloader'
       apps="bootloader"
-      echo "C2(4)0 or C2(5)0"
-      variant=`input`
-      case $variant in
-        4)
-           extradefines="$extradefines -DBOOTLOADER -DC200_ERASE -DC240_ERASE -ffunction-sections -fdata-sections"
-           echo "c240 eraser build selected"
-        ;;
-        5)
-           extradefines="$extradefines -DBOOTLOADER -DC200_ERASE -DC250_ERASE -ffunction-sections -fdata-sections"
-           echo "c240 eraser build selected"
-        ;;
-      esac
+      extradefines="$extradefines -DBOOTLOADER -DSANSA_PP_ERASE -ffunction-sections -fdata-sections"
       bootloader="1"
-      echo "c200 eraser build selected"
+      echo "sansa eraser build selected"
       ;;
     [Bb])
       if test $t_manufacturer = "archos"; then
@@ -3459,7 +3456,7 @@ else
    ""|"$CROSS_COMPILE")
      # simulator
    ;;
-   i586-mingw32msvc-)
+   ${CROSS})
      # cross-compile for win32
    ;;
    *)

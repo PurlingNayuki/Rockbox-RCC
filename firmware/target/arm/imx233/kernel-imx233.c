@@ -31,7 +31,7 @@ static void tick_timer(void)
 void tick_start(unsigned int interval_in_ms)
 {
     /* use the 1-kHz XTAL clock source */
-    imx233_setup_timer(0, true, interval_in_ms,
+    imx233_setup_timer(TICK_TIMER_NR, true, interval_in_ms,
         HW_TIMROT_TIMCTRL__SELECT_1KHZ_XTAL, HW_TIMROT_TIMCTRL__PRESCALE_1,
         false, &tick_timer);
 }
