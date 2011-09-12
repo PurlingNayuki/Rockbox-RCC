@@ -868,7 +868,40 @@ const char *get_token_value(struct gui_wps *gwps,
             struct logical_if *lif = token->value.data;
             return get_lif_token_value(gwps, lif, offset, buf, buf_size);
         }
-        break;           
+        break;
+        case SKIN_TOKEN_SUBSTRING:
+        {
+            struct substring *ss = token->value.data;
+            const char *token_val = get_token_value(gwps, ss->token, offset,
+                                                    buf, buf_size, intval);
+            if (token_val)
+            {
+                int start_byte, end_byte, byte_len;
+                int utf8_len = utf8length(token_val);
+
+                if (utf8_len < ss->start)
+                    return NULL;
+
+                start_byte = utf8seek(token_val, ss->start);
+
+                if (ss->length < 0 || (ss->start + ss->length) > utf8_len)
+                    end_byte = strlen(token_val);
+                else
+                    end_byte = utf8seek(token_val, ss->start + ss->length);
+
+                byte_len = end_byte - start_byte;
+
+                if (token_val != buf)
+                    memcpy(buf, &token_val[start_byte], byte_len);
+                else
+                    buf = &buf[start_byte];
+
+                buf[byte_len] = '\0';
+                return buf;
+            }
+            return NULL;
+        }
+        break;        
             
         case SKIN_TOKEN_CHARACTER:
             if (token->value.c == '\n')
@@ -895,14 +928,21 @@ const char *get_token_value(struct gui_wps *gwps,
             snprintf(buf, buf_size, "%d",sb_get_icon(gwps->display->screen_type));
             return buf;
         case SKIN_TOKEN_LIST_ITEM_TEXT:
-            return skinlist_get_item_text();
+        {
+            struct listitem *li = (struct listitem *)token->value.data;
+            return skinlist_get_item_text(li->offset, li->wrap, buf, buf_size);
+        }
         case SKIN_TOKEN_LIST_ITEM_IS_SELECTED:
             return skinlist_is_selected_item()?"s":"";
         case SKIN_TOKEN_LIST_ITEM_ICON:
+        {
+            struct listitem *li = (struct listitem *)token->value.data;
+            int icon = skinlist_get_item_icon(li->offset, li->wrap);
             if (intval)
-                *intval = skinlist_get_item_icon();
-            snprintf(buf, buf_size, "%d",skinlist_get_item_icon());
+                *intval = icon;
+            snprintf(buf, buf_size, "%d", icon);
             return buf;
+        }
         case SKIN_TOKEN_LIST_NEEDS_SCROLLBAR:
             return skinlist_needs_scrollbar(gwps->display->screen_type) ? "s" : "";
 #endif

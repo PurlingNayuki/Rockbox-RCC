@@ -485,6 +485,27 @@ static int parse_viewport_gradient_setup(struct skin_element *element,
 }
 #endif
 
+static int parse_listitem(struct skin_element *element,
+                        struct wps_token *token,
+                        struct wps_data *wps_data)
+{
+    (void)wps_data;
+    struct listitem *li = (struct listitem *)skin_buffer_alloc(sizeof(struct listitem));
+    if (!li)
+        return 1;
+    token->value.data = li;
+    if (element->params_count == 0)
+        li->offset = 0;
+    else
+    {
+        li->offset = element->params[0].data.number;
+        if (element->params_count > 1)
+            li->wrap = strcasecmp(element->params[1].data.text, "nowrap") != 0;
+        else
+            li->wrap = true;
+    }
+    return 0;
+}
 
 static int parse_listitemviewport(struct skin_element *element,
                                   struct wps_token *token,
@@ -717,6 +738,24 @@ static int parse_timeout_tag(struct skin_element *element,
     else
         val = element->params[0].data.number;
     token->value.i = val * TIMEOUT_UNIT;
+    return 0;
+}
+
+static int parse_substring_tag(struct skin_element* element,
+                                 struct wps_token *token,
+                                 struct wps_data *wps_data)
+{
+    (void)wps_data;
+    struct substring *ss = (struct substring*)skin_buffer_alloc(sizeof(struct substring));
+    if (!ss)
+        return 1;
+    ss->start = element->params[0].data.number;
+    if (element->params[1].type == DEFAULT)
+        ss->length = -1;
+    else
+        ss->length = element->params[1].data.number;
+    ss->token = element->params[2].data.code->data;
+    token->value.data = ss;
     return 0;
 }
 
@@ -1787,6 +1826,9 @@ static int skin_element_callback(struct skin_element* element, void* data)
                 case SKIN_TOKEN_LOGICAL_IF:
                     function = parse_logical_if;
                     break;
+                case SKIN_TOKEN_SUBSTRING:
+                    function = parse_substring_tag;
+                    break;
                 case SKIN_TOKEN_PROGRESSBAR:
                 case SKIN_TOKEN_VOLUME:
                 case SKIN_TOKEN_BATTERY_PERCENT:
@@ -1806,6 +1848,10 @@ static int skin_element_callback(struct skin_element* element, void* data)
                     function = parse_timeout_tag;
                     break;
 #ifdef HAVE_LCD_BITMAP
+                case SKIN_TOKEN_LIST_ITEM_TEXT:
+                case SKIN_TOKEN_LIST_ITEM_ICON:
+                    function = parse_listitem;
+                    break;
                 case SKIN_TOKEN_DISABLE_THEME:
                 case SKIN_TOKEN_ENABLE_THEME:
                 case SKIN_TOKEN_DRAW_INBUILTBAR:
