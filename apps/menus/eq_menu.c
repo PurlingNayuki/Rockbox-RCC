@@ -641,7 +641,7 @@ bool eq_menu_graphical_button(void)
 
     FOR_NB_SCREENS(i) {
         screens[i].set_viewport(NULL);
-        screens[i].setfont(FONT_SYSFIXED);
+        screens[i].setfont(FONT_UI);
         screens[i].clear_display();
 
         /* Figure out how many sliders can be drawn on the screen */
