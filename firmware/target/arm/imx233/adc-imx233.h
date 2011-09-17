@@ -18,7 +18,21 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#ifndef _ADC_TARGET_H_
-#define _ADC_TARGET_H_
+#ifndef _ADC_IMX233_H_
+#define _ADC_IMX233_H_
+
+#include "system.h"
+#include "lradc-imx233.h"
+#include "adc-imx233.h"
+
+/* Virtual channels */
+#define IMX233_ADC_BATTERY      -1 /* Battery voltage (mV) */
+#define IMX233_ADC_DIE_TEMP     -2 /* Die temperature (°C) */
+#define IMX233_ADC_VDDIO        -3 /* VddIO voltage (mV) */
+
+/* Channel mapping */
+extern int imx233_adc_mapping[];
+/* Channel names */
+extern const char *imx233_adc_channel_name[];
 
 #endif

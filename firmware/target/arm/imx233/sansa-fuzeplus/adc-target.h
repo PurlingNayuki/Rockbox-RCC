@@ -18,43 +18,18 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#include "kernel.h"
-#include "timrot-imx233.h"
-#include "timer.h"
+#ifndef _ADC_TARGET_H_
+#define _ADC_TARGET_H_
 
-static long timer_cycles = 0;
+#include "system.h"
+#include "lradc-imx233.h"
+#include "adc-imx233.h"
 
-static void timer_fn(void)
-{
-    if(pfn_timer)
-        pfn_timer();
-}
+#define NUM_ADC_CHANNELS    4
 
-bool timer_set(long cycles, bool start)
-{
-    timer_stop();
-    
-    if(start && pfn_unregister)
-    {
-        pfn_unregister();
-        pfn_unregister = NULL;
-    }
+#define ADC_BATTERY         0
+#define ADC_DIE_TEMP        1
+#define ADC_VDDIO           2
+#define ADC_5V              3
 
-    timer_cycles = cycles;
-
-    return true;
-}
-
-bool timer_start(IF_COP_VOID(int core))
-{
-    imx233_setup_timer(USER_TIMER_NR, true, timer_cycles,
-        HW_TIMROT_TIMCTRL__SELECT_TICK_ALWAYS, HW_TIMROT_TIMCTRL__PRESCALE_1,
-            false, &timer_fn);
-    return true;
-}
-
-void timer_stop(void)
-{
-    imx233_setup_timer(USER_TIMER_NR, false, 0, HW_TIMROT_TIMCTRL__SELECT_NEVER_TICK,
-        HW_TIMROT_TIMCTRL__PRESCALE_1, false, NULL);
-}
+#endif

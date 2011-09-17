@@ -41,7 +41,7 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
 {
     int n8, n4, n2, n, j;
     const fixed32 *in1, *in2;
-    
+    (void)j;
     n = 1 << nbits;
 
     n2 = n >> 1;
@@ -79,6 +79,62 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
     const uint16_t * p_revtab=revtab;
     {
         const uint16_t * const p_revtab_end = p_revtab + n8;
+#ifdef CPU_COLDFIRE
+        asm volatile ("move.l (%[in2]), %%d0\n\t"
+                      "move.l (%[in1]), %%d1\n\t"
+                      "bra.s 1f\n\t"
+                      "0:\n\t"
+                      "movem.l (%[T]), %%d2-%%d3\n\t"
+
+                      "addq.l #8, %[in1]\n\t"
+                      "subq.l #8, %[in2]\n\t"
+
+                      "lea (%[step]*4, %[T]), %[T]\n\t"
+
+                      "mac.l %%d0, %%d3, (%[T]), %%d4, %%acc0;"
+                      "msac.l %%d1, %%d2, (4, %[T]), %%d5, %%acc0;"
+                      "mac.l %%d1, %%d3, (%[in1]), %%d1, %%acc1;"
+                      "mac.l %%d0, %%d2, (%[in2]), %%d0, %%acc1;"
+
+                      "addq.l #8, %[in1]\n\t"
+                      "subq.l #8, %[in2]\n\t"
+
+                      "mac.l %%d0, %%d5, %%acc2;"
+                      "msac.l %%d1, %%d4, (%[p_revtab])+, %%d2, %%acc2;"
+                      "mac.l %%d1, %%d5, (%[in1]), %%d1, %%acc3;"
+                      "mac.l %%d0, %%d4, (%[in2]), %%d0, %%acc3;"
+
+                      "clr.l %%d3\n\t"
+                      "move.w %%d2, %%d3\n\t"
+                      "eor.l %%d3, %%d2\n\t"
+                      "swap %%d2\n\t"
+                      "lsr.l %[revtab_shift], %%d2\n\t"
+
+                      "movclr.l %%acc0, %%d4;"
+                      "movclr.l %%acc1, %%d5;"
+                      "lsl.l #3, %%d2\n\t"
+                      "lea (%%d2, %[z]), %%a1\n\t"
+                      "movem.l %%d4-%%d5, (%%a1)\n\t"
+
+                      "lsr.l %[revtab_shift], %%d3\n\t"
+
+                      "movclr.l %%acc2, %%d4;"
+                      "movclr.l %%acc3, %%d5;"
+                      "lsl.l #3, %%d3\n\t"
+                      "lea (%%d3, %[z]), %%a1\n\t"
+                      "movem.l %%d4-%%d5, (%%a1)\n\t"
+                          
+                      "lea (%[step]*4, %[T]), %[T]\n\t"
+
+                      "1:\n\t"
+                      "cmp.l %[p_revtab_end], %[p_revtab]\n\t"
+                      "bcs.s 0b\n\t"
+                      : [in1] "+a" (in1), [in2] "+a" (in2), [T] "+a" (T),
+                        [p_revtab] "+a" (p_revtab)
+                      : [z] "a" (z), [step] "d" (step), [revtab_shift] "d" (revtab_shift),
+                        [p_revtab_end] "r" (p_revtab_end)
+                      : "d0", "d1", "d2", "d3", "d4", "d5", "a1", "cc", "memory");
+#else
         while(LIKELY(p_revtab < p_revtab_end))
         {
             j = (*p_revtab)>>revtab_shift;
@@ -94,9 +150,66 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
             in2 -= 2;
             p_revtab++;
         }
+#endif
     }
     {
         const uint16_t * const p_revtab_end = p_revtab + n8;
+#ifdef CPU_COLDFIRE
+        asm volatile ("move.l (%[in2]), %%d0\n\t"
+                      "move.l (%[in1]), %%d1\n\t"
+                      "bra.s 1f\n\t"
+                      "0:\n\t"
+                      "movem.l (%[T]), %%d2-%%d3\n\t"
+
+                      "addq.l #8, %[in1]\n\t"
+                      "subq.l #8, %[in2]\n\t"
+
+                      "lea (%[step]*4, %[T]), %[T]\n\t"
+
+                      "mac.l %%d0, %%d2, (%[T]), %%d4, %%acc0;"
+                      "msac.l %%d1, %%d3, (4, %[T]), %%d5, %%acc0;"
+                      "mac.l %%d1, %%d2, (%[in1]), %%d1, %%acc1;"
+                      "mac.l %%d0, %%d3, (%[in2]), %%d0, %%acc1;"
+
+                      "addq.l #8, %[in1]\n\t"
+                      "subq.l #8, %[in2]\n\t"
+
+                      "mac.l %%d0, %%d4, %%acc2;"
+                      "msac.l %%d1, %%d5, (%[p_revtab])+, %%d2, %%acc2;"
+                      "mac.l %%d1, %%d4, (%[in1]), %%d1, %%acc3;"
+                      "mac.l %%d0, %%d5, (%[in2]), %%d0, %%acc3;"
+
+                      "clr.l %%d3\n\t"
+                      "move.w %%d2, %%d3\n\t"
+                      "eor.l %%d3, %%d2\n\t"
+                      "swap %%d2\n\t"
+                      "lsr.l %[revtab_shift], %%d2\n\t"
+
+                      "movclr.l %%acc0, %%d4;"
+                      "movclr.l %%acc1, %%d5;"
+                      "lsl.l #3, %%d2\n\t"
+                      "lea (%%d2, %[z]), %%a1\n\t"
+                      "movem.l %%d4-%%d5, (%%a1)\n\t"
+
+                      "lsr.l %[revtab_shift], %%d3\n\t"
+
+                      "movclr.l %%acc2, %%d4;"
+                      "movclr.l %%acc3, %%d5;"
+                      "lsl.l #3, %%d3\n\t"
+                      "lea (%%d3, %[z]), %%a1\n\t"
+                      "movem.l %%d4-%%d5, (%%a1)\n\t"
+                          
+                      "lea (%[step]*4, %[T]), %[T]\n\t"
+
+                      "1:\n\t"
+                      "cmp.l %[p_revtab_end], %[p_revtab]\n\t"
+                      "bcs.s 0b\n\t"
+                      : [in1] "+a" (in1), [in2] "+a" (in2), [T] "+a" (T),
+                        [p_revtab] "+a" (p_revtab)
+                      : [z] "a" (z), [step] "d" (-step), [revtab_shift] "d" (revtab_shift),
+                        [p_revtab_end] "r" (p_revtab_end)
+                      : "d0", "d1", "d2", "d3", "d4", "d5", "a1", "cc", "memory");
+#else
         while(LIKELY(p_revtab < p_revtab_end))
         {
             j = (*p_revtab)>>revtab_shift;
@@ -112,6 +225,7 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
             in2 -= 2;
             p_revtab++;
         }
+#endif
     }
 
 
@@ -124,7 +238,6 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
         default:
         {
             fixed32 * z1 = (fixed32 *)(&z[0]);
-            fixed32 * z2 = (fixed32 *)(&z[n4-1]);
             int magic_step = step>>2;
             int newstep;
             if(n<=1024)
@@ -134,10 +247,85 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
             }
             else
             {   
-                 T = sincos_lookup1;
-                 newstep = 2;
+                T = sincos_lookup1;
+                newstep = 2;
             }
-        
+
+#ifdef CPU_COLDFIRE
+            fixed32 * z2 = (fixed32 *)(&z[n4]);
+            int c = n4;
+            if (newstep == 2)
+            {
+                asm volatile ("movem.l (%[z1]), %%d0-%%d1\n\t"
+                              "addq.l #8, %[z1]\n\t"
+                              "movem.l (%[T]), %%d2-%%d3\n\t"
+                              "addq.l #8, %[T]\n\t"
+                              "bra.s 1f\n\t"
+                              "0:\n\t"
+                              "msac.l %%d1, %%d2, (%[T])+, %%a3, %%acc0\n\t"
+                              "mac.l  %%d0, %%d3, (%[T])+, %%a4, %%acc0\n\t"
+                              
+                              "msac.l %%d1, %%d3, -(%[z2]), %%d1, %%acc1\n\t"
+                              "msac.l %%d0, %%d2, -(%[z2]), %%d0, %%acc1\n\t"
+
+                              "msac.l %%d1, %%a4, (%[T])+, %%d2, %%acc2\n\t"
+                              "mac.l  %%d0, %%a3, (%[T])+, %%d3, %%acc2\n\t"
+                              "msac.l %%d0, %%a4, (%[z1])+, %%d0, %%acc3\n\t"
+                              "msac.l %%d1, %%a3, (%[z1])+, %%d1, %%acc3\n\t"
+
+                              "movclr.l %%acc0, %%a3\n\t"
+                              "movclr.l %%acc3, %%a4\n\t"
+                              "movem.l %%a3-%%a4, (-16, %[z1])\n\t"
+
+                              "movclr.l %%acc1, %%a4\n\t"
+                              "movclr.l %%acc2, %%a3\n\t"
+                              "movem.l %%a3-%%a4, (%[z2])\n\t"
+
+                              "subq.l #2, %[n]\n\t"
+                              "1:\n\t"
+                              "bhi.s 0b\n\t"
+                              : [z1] "+a" (z1), [z2] "+a" (z2), [T] "+a" (T), [n] "+d" (c)
+                              :
+                              : "d0", "d1", "d2", "d3", "a3", "a4", "cc", "memory");
+            }
+            else
+            {
+                asm volatile ("movem.l (%[z1]), %%d0-%%d1\n\t"
+                              "addq.l #8, %[z1]\n\t"
+                              "movem.l (%[T]), %%d2-%%d3\n\t"
+                              "lea (%[newstep]*4, %[T]), %[T]\n\t"
+                              "bra.s 1f\n\t"
+                              "0:\n\t"
+                              "msac.l %%d1, %%d2, (%[T]), %%a3, %%acc0\n\t"
+                              "mac.l  %%d0, %%d3, (4, %[T]), %%a4, %%acc0\n\t"
+                              "msac.l %%d1, %%d3, -(%[z2]), %%d1, %%acc1\n\t"
+                              "msac.l %%d0, %%d2, -(%[z2]), %%d0, %%acc1\n\t"
+
+                              "lea (%[newstep]*4, %[T]), %[T]\n\t"
+                              "msac.l %%d1, %%a4, (%[T]), %%d2, %%acc2\n\t"
+                              "mac.l  %%d0, %%a3, (4, %[T]), %%d3, %%acc2\n\t"
+                              "msac.l %%d0, %%a4, (%[z1])+, %%d0, %%acc3\n\t"
+                              "msac.l %%d1, %%a3, (%[z1])+, %%d1, %%acc3\n\t"
+
+                              "lea (%[newstep]*4, %[T]), %[T]\n\t"
+
+                              "movclr.l %%acc0, %%a3\n\t"
+                              "movclr.l %%acc3, %%a4\n\t"
+                              "movem.l %%a3-%%a4, (-16, %[z1])\n\t"
+
+                              "movclr.l %%acc1, %%a4\n\t"
+                              "movclr.l %%acc2, %%a3\n\t"
+                              "movem.l %%a3-%%a4, (%[z2])\n\t"
+
+                              "subq.l #2, %[n]\n\t"
+                              "1:\n\t"
+                              "bhi.s 0b\n\t"
+                              : [z1] "+a" (z1), [z2] "+a" (z2), [T] "+a" (T), [n] "+d" (c)
+                              : [newstep] "d" (newstep)
+                              : "d0", "d1", "d2", "d3", "a3", "a4", "cc", "memory");
+            }
+#else
+            fixed32 * z2 = (fixed32 *)(&z[n4-1]);
             while(z1<z2)
             {
                 fixed32 r0,i0,r1,i1;
@@ -150,7 +338,7 @@ void ff_imdct_half(unsigned int nbits, fixed32 *output, const fixed32 *input)
                 z1+=2;
                 z2-=2;
             }
-            
+#endif 
             break;
         }
 

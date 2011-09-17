@@ -18,43 +18,20 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#include "kernel.h"
-#include "timrot-imx233.h"
-#include "timer.h"
+#include "adc-target.h"
 
-static long timer_cycles = 0;
-
-static void timer_fn(void)
+int imx233_adc_mapping[] =
 {
-    if(pfn_timer)
-        pfn_timer();
-}
+    [ADC_BATTERY] = IMX233_ADC_BATTERY,
+    [ADC_DIE_TEMP] = IMX233_ADC_DIE_TEMP,
+    [ADC_VDDIO] = IMX233_ADC_VDDIO,
+    [ADC_5V] = HW_LRADC_CHANNEL_5V,
+};
 
-bool timer_set(long cycles, bool start)
+const char *imx233_adc_channel_name[] =
 {
-    timer_stop();
-    
-    if(start && pfn_unregister)
-    {
-        pfn_unregister();
-        pfn_unregister = NULL;
-    }
-
-    timer_cycles = cycles;
-
-    return true;
-}
-
-bool timer_start(IF_COP_VOID(int core))
-{
-    imx233_setup_timer(USER_TIMER_NR, true, timer_cycles,
-        HW_TIMROT_TIMCTRL__SELECT_TICK_ALWAYS, HW_TIMROT_TIMCTRL__PRESCALE_1,
-            false, &timer_fn);
-    return true;
-}
-
-void timer_stop(void)
-{
-    imx233_setup_timer(USER_TIMER_NR, false, 0, HW_TIMROT_TIMCTRL__SELECT_NEVER_TICK,
-        HW_TIMROT_TIMCTRL__PRESCALE_1, false, NULL);
-}
+    "Battery(mV)",
+    "Die temperature(°C)",
+    "VddIO",
+    "5V",
+};

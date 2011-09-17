@@ -18,43 +18,18 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#include "kernel.h"
-#include "timrot-imx233.h"
-#include "timer.h"
+#include "config.h"
+#include "system.h"
+#include "audiohw.h"
+#include "audio.h"
 
-static long timer_cycles = 0;
-
-static void timer_fn(void)
+void audio_input_mux(int source, unsigned flags)
 {
-    if(pfn_timer)
-        pfn_timer();
+    (void) source;
+    (void) flags;
 }
 
-bool timer_set(long cycles, bool start)
+void audio_set_output_source(int source)
 {
-    timer_stop();
-    
-    if(start && pfn_unregister)
-    {
-        pfn_unregister();
-        pfn_unregister = NULL;
-    }
-
-    timer_cycles = cycles;
-
-    return true;
-}
-
-bool timer_start(IF_COP_VOID(int core))
-{
-    imx233_setup_timer(USER_TIMER_NR, true, timer_cycles,
-        HW_TIMROT_TIMCTRL__SELECT_TICK_ALWAYS, HW_TIMROT_TIMCTRL__PRESCALE_1,
-            false, &timer_fn);
-    return true;
-}
-
-void timer_stop(void)
-{
-    imx233_setup_timer(USER_TIMER_NR, false, 0, HW_TIMROT_TIMCTRL__SELECT_NEVER_TICK,
-        HW_TIMROT_TIMCTRL__PRESCALE_1, false, NULL);
+    (void) source;
 }

@@ -61,7 +61,7 @@
 
 #ifndef BOOTLOADER
 /* Define this if your LCD can be enabled/disabled */
-/* #define HAVE_LCD_ENABLE */
+#define HAVE_LCD_ENABLE
 
 /* Define this if your LCD can be put to sleep. HAVE_LCD_ENABLE
  * should be defined as well.
@@ -157,7 +157,7 @@
 #define CONFIG_I2C I2C_PP5020
 
 /* define this if the hardware can be powered off while charging */
-#define HAVE_POWEROFF_WHILE_CHARGING
+/* #define HAVE_POWEROFF_WHILE_CHARGING */
 
 /* The start address index for ROM builds */
 #define ROM_START 0x00000000

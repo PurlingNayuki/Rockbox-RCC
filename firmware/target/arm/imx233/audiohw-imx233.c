@@ -18,43 +18,44 @@
  * KIND, either express or implied.
  *
  ****************************************************************************/
-#include "kernel.h"
-#include "timrot-imx233.h"
-#include "timer.h"
+#include "config.h"
+#include "system.h"
+#include "audiohw.h"
+#include "audio.h"
 
-static long timer_cycles = 0;
-
-static void timer_fn(void)
+/* TO FILL */
+const struct sound_settings_info audiohw_settings[] =
 {
-    if(pfn_timer)
-        pfn_timer();
+    [SOUND_VOLUME]        = {"dB", 0,  1, -74,   6, -25},
+    [SOUND_BASS]          = {"dB", 0,  1, -24,  24,   0},
+    [SOUND_TREBLE]        = {"dB", 0,  1, -24,  24,   0},
+    [SOUND_BALANCE]       = {"%",  0,  1,-100, 100,   0},
+    [SOUND_CHANNELS]      = {"",   0,  1,   0,   5,   0},
+    [SOUND_STEREO_WIDTH]  = {"%",  0,  5,   0, 250, 100},
+    [SOUND_LEFT_GAIN]     = {"dB", 1,  1,   0,  31,  23},
+    [SOUND_RIGHT_GAIN]    = {"dB", 1,  1,   0,  31,  23},
+    [SOUND_MIC_GAIN]      = {"dB", 1,  1,   0,   1,   0},
+};
+
+void audiohw_init(void)
+{
 }
 
-bool timer_set(long cycles, bool start)
+void audiohw_preinit(void)
 {
-    timer_stop();
-    
-    if(start && pfn_unregister)
-    {
-        pfn_unregister();
-        pfn_unregister = NULL;
-    }
-
-    timer_cycles = cycles;
-
-    return true;
 }
 
-bool timer_start(IF_COP_VOID(int core))
+void audiohw_postinit(void)
 {
-    imx233_setup_timer(USER_TIMER_NR, true, timer_cycles,
-        HW_TIMROT_TIMCTRL__SELECT_TICK_ALWAYS, HW_TIMROT_TIMCTRL__PRESCALE_1,
-            false, &timer_fn);
-    return true;
 }
 
-void timer_stop(void)
+void audiohw_close(void)
 {
-    imx233_setup_timer(USER_TIMER_NR, false, 0, HW_TIMROT_TIMCTRL__SELECT_NEVER_TICK,
-        HW_TIMROT_TIMCTRL__PRESCALE_1, false, NULL);
+}
+
+void audiohw_set_recvol(int left, int right, int type)
+{
+    (void) left;
+    (void) right;
+    (void) type;
 }
