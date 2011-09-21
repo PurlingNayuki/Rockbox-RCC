@@ -84,10 +84,10 @@
     *: "Always"
   </source>
   <dest>
-    *: "总是开启"
+    *: "总是"
   </dest>
   <voice>
-    *: "总是开启"
+    *: "总是"
   </voice>
 </phrase>
 <phrase>
@@ -202,10 +202,10 @@
     *: "General Settings"
   </source>
   <dest>
-    *: "一般设置"
+    *: "常规设置"
   </dest>
   <voice>
-    *: "一般设置"
+    *: "常规设置"
   </voice>
 </phrase>
 <phrase>
@@ -263,11 +263,11 @@
   </source>
   <dest>
     *: none
-    recording: "录音界面"
+    recording: "录音"
   </dest>
   <voice>
     *: none
-    recording: "录音界面"
+    recording: "录音"
   </voice>
 </phrase>
 <phrase>
@@ -1076,11 +1076,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "低通滤波器"
+    swcodec: "低架滤波器"
   </dest>
   <voice>
     *: none
-    swcodec: "低通滤波器"
+    swcodec: "低架滤波器"
   </voice>
 </phrase>
 <phrase>
@@ -1093,11 +1093,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "带通滤波器%d"
+    swcodec: "峰值滤波器%d"
   </dest>
   <voice>
     *: none
-    swcodec: "带通滤波器%d"
+    swcodec: "峰值滤波器%d"
   </voice>
 </phrase>
 <phrase>
@@ -1110,11 +1110,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "高通滤波器"
+    swcodec: "高架滤波器"
   </dest>
   <voice>
     *: none
-    swcodec: "高通滤波器"
+    swcodec: "高架滤波器"
   </voice>
 </phrase>
 <phrase>
@@ -1218,10 +1218,10 @@
     *: "Recursively Insert Directories"
   </source>
   <dest>
-    *: "顺序插入子目录"
+    *: "包含子目录"
   </dest>
   <voice>
-    *: "顺序插入子目录"
+    *: "包含子目录中的文件"
   </voice>
 </phrase>
 <phrase>
@@ -1232,7 +1232,7 @@
     *: "Warn When Erasing Dynamic Playlist"
   </source>
   <dest>
-    *: "删除动态播放列表时要求确认"
+    *: "删除动态播放列表时警告"
   </dest>
   <voice>
     *: "删除动态播放列表时要求确认"
@@ -1316,10 +1316,10 @@
     *: "A-B"
   </source>
   <dest>
-    *: "A-B重复段"
+    *: "A-B循环"
   </dest>
   <voice>
-    *: "AB段"
+    *: "A B循环"
   </voice>
 </phrase>
 <phrase>
@@ -1359,11 +1359,11 @@
     flash_storage: none
   </source>
   <dest>
-    *: "防跳音缓冲"
+    *: "防跳音缓冲区"
     flash_storage: none
   </dest>
   <voice>
-    *: "防跳音缓冲"
+    *: "防跳音缓冲区的大小"
     flash_storage: none
   </voice>
 </phrase>
@@ -1389,10 +1389,10 @@
     *: "Party Mode"
   </source>
   <dest>
-    *: "聚会模式"
+    *: "派对模式"
   </dest>
   <voice>
-    *: "聚会模式"
+    *: "派对模式"
   </voice>
 </phrase>
 <phrase>
@@ -1436,11 +1436,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "曲目更换提示音"
+    swcodec: "曲目跳转提示音"
   </dest>
   <voice>
     *: none
-    swcodec: "曲目更换时发出提示音"
+    swcodec: "曲目跳转时发出提示音"
   </voice>
 </phrase>
 <phrase>
@@ -1606,10 +1606,10 @@
     *: "Gather Runtime Data"
   </source>
   <dest>
-    *: "记录音乐播放记录"
+    *: "记录音乐播放历史"
   </dest>
   <voice>
-    *: "记录音乐播放记录"
+    *: "记录音乐播放历史"
   </voice>
 </phrase>
 <phrase>
@@ -1662,10 +1662,10 @@
     *: "Alphabetical"
   </source>
   <dest>
-    *: "按字母顺序"
+    *: "字母顺序"
   </dest>
   <voice>
-    *: "按字母顺序"
+    *: "按照字母顺序排序"
   </voice>
 </phrase>
 <phrase>
@@ -1718,10 +1718,10 @@
     *: "Show Files"
   </source>
   <dest>
-    *: "文件显示"
+    *: "显示文件"
   </dest>
   <voice>
-    *: "文件显示"
+    *: "显示文件"
   </voice>
 </phrase>
 <phrase>
@@ -2177,10 +2177,10 @@
     *: "Idle Poweroff"
   </source>
   <dest>
-    *: "闲置自动关机时长"
+    *: "闲置关机"
   </dest>
   <voice>
-    *: "闲置自动关机时长"
+    *: "闲置自动关机的时长"
   </voice>
 </phrase>
 <phrase>
@@ -2284,7 +2284,7 @@
     *: "Yes - Recent only"
   </source>
   <dest>
-    *: "保存到最近的书签"
+    *: "是 - 只保存在最近的书签"
   </dest>
   <voice>
     *: "是 保存到最近的书签"
@@ -2298,7 +2298,7 @@
     *: "Ask - Recent only"
   </source>
   <dest>
-    *: "保存到最近的书签(每次询问)"
+    *: "询问 - 只保存在最近的书签"
   </dest>
   <voice>
     *: "每次询问 保存到最近的书签"
@@ -2860,10 +2860,10 @@
     *: "Replaygain Type"
   </source>
   <dest>
-    *: "播放增益种类"
+    *: "回放增益种类"
   </dest>
   <voice>
-    *: "播放增益种类"
+    *: "回放增益种类"
   </voice>
 </phrase>
 <phrase>
@@ -3327,11 +3327,11 @@
   </source>
   <dest>
     *: none
-    lcd_bitmap: "允许列表查看时滚动全屏"
+    lcd_bitmap: "可视范围外滚动"
   </dest>
   <voice>
     *: none
-    lcd_bitmap: "允许列表查看时滚动整个屏幕"
+    lcd_bitmap: "可视范围外的屏幕滚动"
   </voice>
 </phrase>
 <phrase>
@@ -3578,11 +3578,11 @@
     masd: none
   </source>
   <dest>
-    *: "对数(dB)坐标"
+    *: "对数(dB)"
     masd: none
   </dest>
   <voice>
-    *: "对数坐标"
+    *: "对数"
     masd: none
   </voice>
 </phrase>
@@ -3595,11 +3595,11 @@
     masd: none
   </source>
   <dest>
-    *: "线性(%)坐标"
+    *: "线性(%)"
     masd: none
   </dest>
   <voice>
-    *: "线性坐标"
+    *: "线性"
     masd: none
   </voice>
 </phrase>
@@ -3695,11 +3695,11 @@
   </source>
   <dest>
     *: none
-    battery_types: "锂镁氢"
+    battery_types: "镍氢"
   </dest>
   <voice>
     *: none
-    battery_types: "锂镁氢"
+    battery_types: "镍氢"
   </voice>
 </phrase>
 <phrase>
@@ -3711,11 +3711,11 @@
     flash_storage: none
   </source>
   <dest>
-    *: "磁盘复位停止"
+    *: "磁盘降速"
     flash_storage: none
   </dest>
   <voice>
-    *: "磁盘复位停止"
+    *: "磁盘降速"
     flash_storage: none
   </voice>
 </phrase>
@@ -7002,7 +7002,7 @@
   </source>
   <dest>
     *: none
-    radio_screen_button_bar: "选单"
+    radio_screen_button_bar: "菜单"
   </dest>
   <voice>
     *: none
@@ -7987,7 +7987,7 @@
   </source>
   <dest>
     *: none
-    recorder_pad: "选单"
+    recorder_pad: "菜单"
   </dest>
   <voice>
     *: none
@@ -8518,11 +8518,11 @@
   </source>
   <dest>
     *: none
-    crossfade: "乱序或曲目跳转时"
+    crossfade: "乱序或手动切换曲目时"
   </dest>
   <voice>
     *: none
-    crossfade: "乱序或曲目跳转时"
+    crossfade: "乱序或手动切换曲目时"
   </voice>
 </phrase>
 <phrase>
@@ -8830,10 +8830,10 @@
     *: "Main Menu"
   </source>
   <dest>
-    *: "主选单"
+    *: "主菜单"
   </dest>
   <voice>
-    *: "主选单"
+    *: "主菜单"
   </voice>
 </phrase>
 <phrase>
@@ -9473,10 +9473,10 @@
     *: "Context Menu"
   </source>
   <dest>
-    *: "相关选单"
+    *: "相关菜单"
   </dest>
   <voice>
-    *: "相关选单"
+    *: "相关菜单"
   </voice>
 </phrase>
 <phrase>
@@ -9487,10 +9487,10 @@
     *: "Previous Screen"
   </source>
   <dest>
-    *: "关机前画面"
+    *: "关机前界面"
   </dest>
   <voice>
-    *: "关机前画面"
+    *: "关机前界面"
   </voice>
 </phrase>
 <phrase>
@@ -10186,11 +10186,11 @@
   </source>
   <dest>
     *: none
-    radio: "FM广播选单"
+    radio: "FM广播菜单"
   </dest>
   <voice>
     *: none
-    radio: "FM广播选单"
+    radio: "FM广播菜单"
   </voice>
 </phrase>
 <phrase>
@@ -11711,11 +11711,11 @@
   </source>
   <dest>
     *: none
-    usb_hid: "浏览器模式"
+    usb_hid: "浏览"
   </dest>
   <voice>
     *: none
-    usb_hid: "浏览器模式"
+    usb_hid: "浏览模式"
   </voice>
 </phrase>
 <phrase>
@@ -11728,11 +11728,11 @@
   </source>
   <dest>
     *: none
-    usb_hid: "开启USB HID"
+    usb_hid: "连接USB后允许控制计算机"
   </dest>
   <voice>
     *: none
-    usb_hid: "USB Human Interface Device"
+    usb_hid: "连接USB后允许控制计算机"
   </voice>
 </phrase>
 <phrase>
@@ -11946,7 +11946,7 @@
   </source>
   <dest>
     *: none
-    usb_hid: "多媒体模式"
+    usb_hid: "多媒体"
   </dest>
   <voice>
     *: none
@@ -12197,7 +12197,7 @@
   </source>
   <dest>
     *: none
-    usb_hid: "幻灯片演示模式"
+    usb_hid: "幻灯片演示"
   </dest>
   <voice>
     *: none
@@ -12362,10 +12362,10 @@
     *: "Update on Stop"
   </source>
   <dest>
-    *: "在播放停止时创建"
+    *: "在停止时更新"
   </dest>
   <voice>
-    *: "在播放停止时创建书签"
+    *: "在停止时更新书签"
   </voice>
 </phrase>
 <phrase>
@@ -12978,10 +12978,27 @@
   </source>
   <dest>
     *: none
-    swcodec: "反锯齿(Tube)"
+    swcodec: "抗混频(Tube)"
   </dest>
   <voice>
     *: none
-    swcodec: "tube"
+    swcodec: "抗混频"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_USB_SKIP_FIRST_DRIVE
+  desc: in settings_menu
+  user: core
+  <source>
+    *: none
+    multidrive_usb: "USB Hide Internal Drive"
+  </source>
+  <dest>
+    *: none
+    multidrive_usb: "连接USB时隐藏内置存储分区"
+  </dest>
+  <voice>
+    *: none
+    multidrive_usb: "连接USB时隐藏内置存储分区"
   </voice>
 </phrase>
