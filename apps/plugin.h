@@ -272,7 +272,8 @@ struct plugin_api {
     bool (*is_diacritic)(const unsigned short char_code, bool *is_rtl);
 #endif
     const unsigned char *(*font_get_bits)( struct font *pf, unsigned short char_code );
-    int (*font_load)(struct font*, const char *path);
+    int (*font_load)(const char *path);
+    void (*font_unload)(int font_id);
     struct font* (*font_get)(int font);
     int  (*font_getstringsize)(const unsigned char *str, int *w, int *h,
                                int fontnumber);
@@ -986,6 +987,7 @@ void plugin_tsr(bool (*exit_callback)(bool reenter));
 
 /* defined by the plugin */
 extern const struct plugin_api *rb;
+enum plugin_status plugin_start(const void* parameter);
 enum plugin_status plugin__start(const void* parameter)
     NO_PROF_ATTR;
 

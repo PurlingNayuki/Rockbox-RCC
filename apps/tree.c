@@ -619,7 +619,10 @@ static int dirbrowse(void)
 {
     int numentries=0;
     char buf[MAX_PATH];
-    int button, oldbutton;
+    int button;
+#ifdef HAVE_LCD_BITMAP
+    int oldbutton;
+#endif
     bool reload_root = false;
     int lastfilter = *tc.dirfilter;
     bool lastsortcase = global_settings.sort_case;
@@ -663,7 +666,9 @@ static int dirbrowse(void)
 
         button = get_action(CONTEXT_TREE,
                             list_do_action_timeout(&tree_lists, HZ/2));
+#ifdef HAVE_LCD_BITMAP
         oldbutton = button;
+#endif
         gui_synclist_do_button(&tree_lists, &button,LIST_WRAP_UNLESS_HELD);
         tc.selected_item = gui_synclist_get_sel_pos(&tree_lists);
         switch ( button ) {
@@ -1014,7 +1019,7 @@ static int move_callback(int handle, void* current, void* new)
     size_t diff = new - current;
     /* FIX_PTR makes sure to not accidentally update static allocations */
 #define FIX_PTR(x) \
-    { if ((void*)x > current && (void*)x < (current+cache->name_buffer_size)) x+= diff; }
+    { if ((void*)x >= current && (void*)x < (current+cache->name_buffer_size)) x+= diff; }
 
     if (handle == cache->name_buffer_handle)
     {   /* update entry structs, *even if they are struct tagentry */
