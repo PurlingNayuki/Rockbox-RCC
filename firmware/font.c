@@ -93,8 +93,10 @@ static int buflibmove_callback(int handle, void* current, void* new)
     if (alloc->handle_locked)
         return BUFLIB_CB_CANNOT_MOVE;
 
-    alloc->font.bits += diff;
-    alloc->font.offset += diff;
+    if (alloc->font.bits)
+        alloc->font.bits += diff;
+    if (alloc->font.offset)
+        alloc->font.offset += diff;
     if (alloc->font.width)
         alloc->font.width += diff;
 
@@ -102,7 +104,10 @@ static int buflibmove_callback(int handle, void* current, void* new)
     alloc->font.buffer_end += diff;
     alloc->font.buffer_position += diff;
 
-    alloc->font.cache._index += diff;
+    if (alloc->font.cache._index)
+        alloc->font.cache._index += diff;
+    if (alloc->font.cache._lru._base)
+        alloc->font.cache._lru._base += diff;
 
     return BUFLIB_CB_OK;
 }
@@ -171,9 +176,12 @@ static int32_t readlong(struct font *pf)
 
 static int glyph_bytes( struct font *pf, int width )
 {
-    return pf->depth ?
-        (pf->height * width + 1) / 2:
-        width * ((pf->height + 7) / 8);
+    int ret;
+    if (pf->depth)
+        ret = ( pf->height * width + 1 ) / 2;
+    else
+        ret = width * ((pf->height + 7) / 8);
+    return (ret + 1) & ~1;
 }
 
 static struct font* font_load_header(struct font *pf)

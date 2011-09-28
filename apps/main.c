@@ -350,6 +350,9 @@ static void init(void)
 #ifdef HAVE_REMOTE_LCD
     lcd_remote_init();
 #endif
+    /* This init call allocates an *unmovable* block so must be
+     * before any other moveable allocs. */
+    theme_init_buffer();
 #ifdef HAVE_LCD_BITMAP
     FOR_NB_SCREENS(i)
         global_status.font_id[i] = FONT_SYSFIXED;
@@ -390,7 +393,6 @@ static void init(void)
     tree_mem_init();
     filetype_init();
     playlist_init();
-    theme_init_buffer();
 
 #if CONFIG_CODEC != SWCODEC
     mp3_init( global_settings.volume,
@@ -439,9 +441,10 @@ static void init(void)
 #endif
     cpu_boost(true);
 #endif
-    
 
-    settings_reset();
+    /* This init call allocates an *unmovable* block so must be
+     * before any other moveable allocs. */
+    theme_init_buffer();
 
     i2c_init();
     
@@ -463,6 +466,8 @@ static void init(void)
         global_status.font_id[rc] = FONT_SYSFIXED;
     font_init();
 #endif
+    
+    settings_reset();
 
     CHART(">show_logo");
     show_logo();

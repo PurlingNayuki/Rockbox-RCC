@@ -25,7 +25,9 @@
 #include <limits.h>
 #include "inttypes.h"
 #include "config.h"
+#include "core_alloc.h"
 #include "action.h"
+#include "misc.h"
 #include "crc32.h"
 #include "settings.h"
 #include "wps.h"
@@ -43,14 +45,38 @@ static bool skins_initialising = true;
 /* App uses the host malloc to manage the buffer */
 #ifdef APPLICATION
 #define skin_buffer NULL
+#define skin_buffer_size 0
 void theme_init_buffer(void)
 {
     skins_initialising = false;
 }
 #else
-static char skin_buffer[SKIN_BUFFER_SIZE];
+static size_t skin_buffer_size;
+static char *skin_buffer = NULL;
+static int buflib_move_callback(int handle, void* current, void* new)
+{
+    (void)handle;
+    (void)current;
+    (void)new;
+    return BUFLIB_CB_CANNOT_MOVE;
+}
+static struct buflib_callbacks buflib_ops = {buflib_move_callback, NULL};
+
 void theme_init_buffer(void)
 {
+    int fd;
+    size_t size = SKIN_BUFFER_SIZE;
+    fd = open_utf8(ROCKBOX_DIR "/skin_buffer_size.txt", O_RDONLY);
+    if (fd >= 0)
+    {
+        char buf[32];
+        read(fd, buf, sizeof(buf));
+        if (buf[0] >= '0' && buf[0] <= '9')
+            size = atoi(buf)*1024;
+        close(fd);
+    }
+    skin_buffer = core_get_data(core_alloc_ex("skin buffer", size, &buflib_ops));
+    skin_buffer_size = size;
     skins_initialising = false;
 }
 #endif
@@ -103,7 +129,7 @@ void gui_sync_skin_init(void)
     }
 }
 
-void settings_apply_skins(void)
+void skin_unload_all(void)
 {
     int i, j;
 
@@ -113,13 +139,18 @@ void settings_apply_skins(void)
             skin_data_free_buflib_allocs(&skins[j][i].data);
     }
 
-    skin_buffer_init(skin_buffer, SKIN_BUFFER_SIZE);
-    
+    skin_buffer_init(skin_buffer, skin_buffer_size);
 #ifdef HAVE_LCD_BITMAP
     skin_backdrop_init();
 #endif
     gui_sync_skin_init();
+}
 
+void settings_apply_skins(void)
+{
+    int i, j;
+
+    skin_unload_all();
     /* Make sure each skin is loaded */
     for (i=0; i<SKINNABLE_SCREENS_COUNT; i++)
     {
