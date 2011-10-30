@@ -351,10 +351,10 @@
     *: "Balance"
   </source>
   <dest>
-    *: "左右声道平衡"
+    *: "声道平衡"
   </dest>
   <voice>
-    *: "左右声道平衡"
+    *: "声道平衡"
   </voice>
 </phrase>
 <phrase>
@@ -649,11 +649,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "Space'80混响效果"
+    swcodec: "Space'80混响"
   </dest>
   <voice>
     *: none
-    swcodec: "Space 80 混响效果"
+    swcodec: "Space 80 混响"
   </voice>
 </phrase>
 <phrase>
@@ -1330,10 +1330,10 @@
     *: "Play Selected First"
   </source>
   <dest>
-    *: "建立播放列表后优先播放选中的文件"
+    *: "优先播放选中的曲目"
   </dest>
   <voice>
-    *: "建立播放列表后优先播放选中的文件"
+    *: "建立播放列表后优先播放选中的曲目"
   </voice>
 </phrase>
 <phrase>
@@ -1564,10 +1564,10 @@
     *: "Initialize Now"
   </source>
   <dest>
-    *: "立即初始化"
+    *: "初始化媒体库"
   </dest>
   <voice>
-    *: "立即初始化"
+    *: "初始化媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -1578,10 +1578,10 @@
     *: "Updating in background"
   </source>
   <dest>
-    *: "后台更新中..."
+    *: "正在后台更新媒体库..."
   </dest>
   <voice>
-    *: "后台更新中..."
+    *: "正在后台更新媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -1592,10 +1592,10 @@
     *: "Committing database"
   </source>
   <dest>
-    *: "提交数据库"
+    *: "正在初始化媒体数据库..."
   </dest>
   <voice>
-    *: "提交数据库"
+    *: "正在初始化媒体数据库"
   </voice>
 </phrase>
 <phrase>
@@ -7773,10 +7773,10 @@
     *: "Update Now"
   </source>
   <dest>
-    *: "立即更新"
+    *: "更新媒体库"
   </dest>
   <voice>
-    *: "立即更新"
+    *: "更新媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -7787,10 +7787,10 @@
     *: "Auto Update"
   </source>
   <dest>
-    *: "自动更新"
+    *: "自动更新媒体库"
   </dest>
   <voice>
-    *: "自动更新"
+    *: "自动更新媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -7801,10 +7801,10 @@
     *: "Export Modifications"
   </source>
   <dest>
-    *: "导出修改"
+    *: "导出媒体库"
   </dest>
   <voice>
-    *: "导出修改"
+    *: "导出媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -8200,10 +8200,10 @@
     *: "Import Modifications"
   </source>
   <dest>
-    *: "导入更改"
+    *: "导入媒体库"
   </dest>
   <voice>
-    *: "导入更改"
+    *: "导入媒体库"
   </voice>
 </phrase>
 <phrase>
@@ -8597,10 +8597,10 @@
     *: "Channel Configuration"
   </source>
   <dest>
-    *: "声道设置"
+    *: "声道"
   </dest>
   <voice>
-    *: "声道设置"
+    *: "声道"
   </voice>
 </phrase>
 <phrase>
@@ -9532,10 +9532,10 @@
     *: "Cuesheet Support"
   </source>
   <dest>
-    *: "Cuesheet支持"
+    *: "Cue支持"
   </dest>
   <voice>
-    *: "Cue sheet支持"
+    *: "Cue 支持"
   </voice>
 </phrase>
 <phrase>
@@ -9711,11 +9711,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "高频抖动"
+    swcodec: "抖动"
   </dest>
   <voice>
     *: none
-    swcodec: "高频抖动"
+    swcodec: "抖动"
   </voice>
 </phrase>
 <phrase>
@@ -11109,11 +11109,11 @@
   </source>
   <dest>
     *: none
-    speaker: "开启扬声器"
+    speaker: "扬声器"
   </dest>
   <voice>
     *: none
-    speaker: "开启扬声器"
+    speaker: "扬声器"
   </voice>
 </phrase>
 <phrase>
@@ -11298,11 +11298,11 @@
   </source>
   <dest>
     *: none
-    touchscreen: "3x3虚拟按键"
+    touchscreen: "九宫格虚拟按键"
   </dest>
   <voice>
     *: none
-    touchscreen: "3x3虚拟按键"
+    touchscreen: "九宫格虚拟按键"
   </voice>
 </phrase>
 <phrase>
@@ -11827,11 +11827,11 @@
   </source>
   <dest>
     *: none
-    touchscreen: "校准触摸屏"
+    touchscreen: "触屏校准"
   </dest>
   <voice>
     *: none
-    touchscreen: "校准触摸屏"
+    touchscreen: "触屏校准"
   </voice>
 </phrase>
 <phrase>
@@ -12053,11 +12053,11 @@
   </source>
   <dest>
     *: none
-    swcodec: "防止变速时声音变调"
+    swcodec: "时间拉伸"
   </dest>
   <voice>
     *: none
-    swcodec: "防止变速时声音变调"
+    swcodec: "时间拉伸"
   </voice>
 </phrase>
 <phrase>
@@ -13012,11 +13012,11 @@
   </source>
   <dest>
     *: none
-    touchscreen: "列表项文字填充高度"
+    touchscreen: "列表项文字填充"
   </dest>
   <voice>
     *: none
-    touchscreen: "列表项文字填充高度"
+    touchscreen: "列表项文字填充"
   </voice>
 </phrase>
 <phrase>
