@@ -9228,10 +9228,10 @@
     *: "Playlist Catalogue"
   </source>
   <dest>
-    *: "播放列表"
+    *: "播放列表目录"
   </dest>
   <voice>
-    *: "播放列表"
+    *: "播放列表目录"
   </voice>
 </phrase>
 <phrase>
@@ -13000,5 +13000,64 @@
   <voice>
     *: none
     multidrive_usb: "连接USB时隐藏内置存储分区"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_LIST_LINE_PADDING
+  desc: list padding, in display settings
+  user: core
+  <source>
+    *: none
+    touchscreen: "Line Padding in Lists"
+  </source>
+  <dest>
+    *: none
+    touchscreen: "列表项文字填充高度"
+  </dest>
+  <voice>
+    *: none
+    touchscreen: "列表项文字填充高度"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_AUTOMATIC
+  desc: generic automatic
+  user: core
+  <source>
+    *: "Automatic"
+  </source>
+  <dest>
+    *: "自动"
+  </dest>
+  <voice>
+    *: "自动"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_ON_POWER_UP
+  desc: whether sleep timer starts on power up
+  user: core
+  <source>
+    *: "Start Sleep Timer On Boot"
+  </source>
+  <dest>
+    *: "开机自动启用睡眠定时"
+  </dest>
+  <voice>
+    *: "开机自动启用睡眠定时"
+  </voice>
+</phrase>
+<phrase>
+  id: LANG_SLEEP_TIMER_CANCEL_CURRENT
+  desc: shown instead of sleep timer when it's running
+  user: core
+  <source>
+    *: "Cancel Sleep Timer"
+  </source>
+  <dest>
+    *: "取消睡眠定时"
+  </dest>
+  <voice>
+    *: "取消睡眠定时"
   </voice>
 </phrase>
