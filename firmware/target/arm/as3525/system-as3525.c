@@ -184,7 +184,7 @@ static void check_model_variant(void)
     c200v2_variant = !GPIOA_PIN(7);
     GPIOA_DIR = saved_dir;
 }
-#elif defined(SANSA_FUZEV2) || defined(SANSA_CLIPPLUS)
+#elif defined(SANSA_FUZEV2) || defined(SANSA_CLIPPLUS) || defined(SANSA_CLIPZIP)
 int amsv2_variant;
 
 static void check_model_variant(void)
@@ -281,13 +281,15 @@ void system_init(void)
     ascodec_write_pmu(0x1A, 2, 0xCC);
     /* CHGVBUS2:  set VBUS threshold to 3.18V and EOC threshold to 30% CC */
     ascodec_write_pmu(0x19, 2, 0x41);
-#if 0   /* don't set higher voltage until impact on runtime has been checked */
     /* PVDD1:     set PVDD1 power supply to 2.5 V */
     ascodec_write_pmu(0x18, 1, 0x35);
     /* AVDD17:    set AVDD17 power supply to 2.5V */
     ascodec_write_pmu(0x18, 7, 0x31);
+#ifdef SANSA_CLIPZIP
+    /* CVDD2:     set CVDD2 power supply to 2.8V */
+    ascodec_write_pmu(0x17, 2, 0xF4);
 #endif
-#else
+#else /* HAVE_AS3543 */
     ascodec_write(AS3514_CVDD_DCDC3, AS314_CP_DCDC3_SETTING);
 #endif /* HAVE_AS3543 */
 

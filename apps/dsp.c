@@ -19,6 +19,7 @@
  *
  ****************************************************************************/
 #include "config.h"
+
 #include <stdbool.h>
 #include <inttypes.h>
 #include <string.h>
@@ -275,6 +276,7 @@ static int treble;                                  /* A/V */
 /* Settings applicable to audio codec only */
 #ifdef HAVE_PITCHSCREEN
 static int32_t  pitch_ratio = PITCH_SPEED_100;
+static int  big_sample_locks;
 #endif
 static int  channels_mode;
        long dsp_sw_gain;
@@ -356,16 +358,34 @@ void sound_set_pitch(int32_t percent)
                   AUDIO_DSP.codec_frequency);
 }
 
+static void tdspeed_set_pointers( bool time_stretch_active )
+{
+    if( time_stretch_active )
+    {
+        sample_buf_count = BIG_SAMPLE_BUF_COUNT;
+        resample_buf_count = BIG_RESAMPLE_BUF_COUNT;
+        sample_buf[0] = big_sample_buf[0];
+        sample_buf[1] = big_sample_buf[1];
+        resample_buf[0] = big_resample_buf[0];
+        resample_buf[1] = big_resample_buf[1];
+    }
+    else
+    {
+        sample_buf_count = SMALL_SAMPLE_BUF_COUNT;
+        resample_buf_count = SMALL_RESAMPLE_BUF_COUNT;
+        sample_buf[0] = small_sample_buf[0];
+        sample_buf[1] = small_sample_buf[1];
+        resample_buf[0] = small_resample_buf[0];
+        resample_buf[1] = small_resample_buf[1];
+    }
+}
+ 
 static void tdspeed_setup(struct dsp_config *dspc)
 {
     /* Assume timestretch will not be used */
     dspc->tdspeed_active = false;
-    sample_buf[0] = small_sample_buf[0];
-    sample_buf[1] = small_sample_buf[1];
-    resample_buf[0] = small_resample_buf[0];
-    resample_buf[1] = small_resample_buf[1];
-    sample_buf_count = SMALL_SAMPLE_BUF_COUNT;
-    resample_buf_count = SMALL_RESAMPLE_BUF_COUNT;
+
+    tdspeed_set_pointers( false );
 
     if (!dsp_timestretch_available())
         return; /* Timestretch not enabled or buffer not allocated */
@@ -381,21 +401,31 @@ static void tdspeed_setup(struct dsp_config *dspc)
 
     /* Timestretch is to be used */
     dspc->tdspeed_active = true;
-    sample_buf[0] = big_sample_buf[0];
-    sample_buf[1] = big_sample_buf[1];
-    resample_buf[0] = big_resample_buf[0];
-    resample_buf[1] = big_resample_buf[1];
-    sample_buf_count = BIG_SAMPLE_BUF_COUNT;
-    resample_buf_count = BIG_RESAMPLE_BUF_COUNT;
+
+    tdspeed_set_pointers( true );
 }
 
 
 static int move_callback(int handle, void* current, void* new)
 {
-    /* TODO */
-    (void)handle;(void)current;;
+    (void)handle;(void)current;
+
+    if ( big_sample_locks > 0 )
+        return BUFLIB_CB_CANNOT_MOVE;
+    
     big_sample_buf = new;
+    
+    /* no allocation without timestretch enabled */
+    tdspeed_set_pointers( true );
     return BUFLIB_CB_OK;
+}
+
+void lock_sample_buf( bool lock )
+{
+    if ( lock )
+        big_sample_locks++;
+    else
+        big_sample_locks--;
 }
 
 static struct buflib_callbacks ops = {
@@ -407,8 +437,7 @@ static struct buflib_callbacks ops = {
 void dsp_timestretch_enable(bool enabled)
 {
     /* Hook to set up timestretch buffer on first call to settings_apply() */
-    static int handle;
-
+    static int handle = -1;
     if (enabled)
     {
         if (big_sample_buf)
@@ -416,12 +445,11 @@ void dsp_timestretch_enable(bool enabled)
 
         /* Set up timestretch buffers */
         big_sample_buf = &small_resample_buf[0];
-
         handle = core_alloc_ex("resample buf",
                                2 * BIG_RESAMPLE_BUF_COUNT * sizeof(int32_t),
                                &ops);
-
-        enabled = handle > 0;
+        big_sample_locks = 0;
+        enabled = handle >= 0;
 
         if (enabled)
         {
@@ -438,10 +466,10 @@ void dsp_timestretch_enable(bool enabled)
         dsp_set_timestretch(PITCH_SPEED_100);
         tdspeed_finish();
 
-        if (handle > 0)
+        if (handle >= 0)
             core_free(handle);
 
-        handle = 0;
+        handle = -1;
         big_sample_buf = NULL;
     }
 }
@@ -860,12 +888,12 @@ static inline int resample(struct dsp_config *dsp, int count, int32_t *src[])
         resample_buf[0],
         resample_buf[1]
     };
-
+    lock_sample_buf( true );
     count = dsp->resample(count, &dsp->data, (const int32_t **)src, dst);
 
     src[0] = dst[0];
     src[1] = dst[dsp->data.num_channels - 1];
-
+    lock_sample_buf( false );
     return count;
 }
 
@@ -1953,8 +1981,7 @@ void dsp_set_compressor(void)
     bool changed = false;
     bool active  = (threshold < 0);
 
-    int i;
-    for (i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (curr_set[i] != new_set[i])
         {
@@ -1992,7 +2019,6 @@ void dsp_set_compressor(void)
     if (changed && active)
     {
         /* configure variables for compressor operation */
-        int i;
         const int32_t db[] ={0x000000,   /* positive db equivalents in S15.16 format */
          0x241FA4, 0x1E1A5E, 0x1A94C8, 0x181518, 0x1624EA, 0x148F82, 0x1338BD, 0x120FD2,
          0x1109EB, 0x101FA4, 0x0F4BB6, 0x0E8A3C, 0x0DD840, 0x0D3377, 0x0C9A0E, 0x0C0A8C,
@@ -2063,7 +2089,7 @@ void dsp_set_compressor(void)
         comp_curve[0] = UNITY;
         /* comp_curve[1 to 63] are intermediate compression values corresponding
            to the 6 MSB of the input values of a non-clipped signal */
-        for (i = 1; i < 64; i++)
+        for (int i = 1; i < 64; i++)
         {
             /* db constants are stored as positive numbers;
                make them negative here */
@@ -2101,7 +2127,7 @@ void dsp_set_compressor(void)
         db_curve[1].offset = 0;
         db_curve[3].db = 0;
         
-        for (i = 0; i <= 4; i++)
+        for (int i = 0; i <= 4; i++)
         {
             logf("Curve[%d]: db: % 6.2f\toffset: % 6.2f", i,
                 (float)db_curve[i].db / (1 << 16),
@@ -2109,7 +2135,7 @@ void dsp_set_compressor(void)
         }
         
         logf("\nGain factors:");
-        for (i = 1; i <= 65; i++)
+        for (int i = 1; i <= 65; i++)
         {
             debugf("%02d: %.6f  ", i, (float)comp_curve[i] / UNITY);
             if (i % 4 == 0) debugf("\n");

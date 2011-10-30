@@ -8,6 +8,7 @@
  * $Id$
  *
  * Copyright (C) 2011 Marcin Bukat
+ * Copyright (C) 2011 Andrew Ryabinin
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -130,7 +131,7 @@ static void i2s_init(void)
 {
 #if defined(HAVE_RK27XX_CODEC)
     /* iomux I2S internal */
-    SCU_IOMUXA_CON &= ~(1<<18);  /* i2s external bit */
+    SCU_IOMUXA_CON &= ~(1<<19);  /* i2s external bit */
     SCU_IOMUXB_CON &= ~((1<<4) | /* i2s_mclk */
                         (1<<3) | /* i2s_sdo */
                         (1<<2) | /* i2s_sdi */
@@ -138,7 +139,7 @@ static void i2s_init(void)
                         (1<<0)); /* i2s_bck */
 #else
     /* iomux I2S external */
-    SCU_IOMUXA_CON |= (1<<18);   /* i2s external bit */
+    SCU_IOMUXA_CON |= (1<<19);   /* i2s external bit */
     SCU_IOMUXB_CON |= ((1<<4) |  /* i2s_mclk */
                        (1<<3) |  /* i2s_sdo */
                        (1<<2) |  /* i2s_sdi */
@@ -152,14 +153,18 @@ static void i2s_init(void)
     
     /* configure I2S module */
     I2S_IER = 0; /* disable all i2s interrupts */
-                   
+
     I2S_TXCTL = (1<<16) |  /* LRCK/SCLK = 64 */
                 (4<<8)  |  /* MCLK/SCLK = 4 */
                 (1<<4)  |  /* 16bit samples */
                 (0<<3)  |  /* stereo */
                 (0<<1)  |  /* I2S IF */
+#ifdef CODEC_SLAVE
+                (1<<0);    /* master mode */
+#else
                 (0<<0);    /* slave mode */
- 
+#endif
+
     /* the fifo is 16x32bits according to my tests
      * while the docs state 32x32bits
      */
@@ -173,9 +178,66 @@ static void i2s_init(void)
               (0<<4)  |  /* Req1 for Tx fifo */
               (1<<3)  |  /* Req2 for Rx fifo */
               (0<<2)  |  /* normal operation */
-              (0<<1)  |  /* start Tx (in master mode) */
-              (0<<0);    /* start Rx (in master mode) */
+#ifdef CODEC_SLAVE
+              (1<<1)  |  /* start Tx (master mode) */
+              (0<<0);    /* do not start Rx (master mode) */
+                         /* setting Rx bit to 1 result in choppy audio */
+#else
+              (0<<1)  |  /* not used in slave mode */
+              (0<<0);    /* not used in slave mode */
+#endif
 }
+
+#ifdef CODEC_SLAVE
+/* When codec is slave we need to setup i2s MCLK clock using codec pll.
+ * The MCLK frequency is 256*codec frequency as i2s setup is:
+ * LRCK/SCLK = 64 and MCLK/SCLK = 4 (see i2s_init() for reference)
+ *
+ * PLL output frequency:
+ * Fout = ((Fref / (CLKR+1)) * (CLKF+1)) / (CLKOD+1)
+ * Fref = 24 MHz
+ */
+static void set_codec_freq(unsigned int freq)
+{
+    long timeout;
+
+    /* {CLKR, CLKF, CLKOD, CODECPLL_DIV} */
+    static const unsigned int pcm_freq_params[HW_NUM_FREQ][4] = 
+    {
+	[HW_FREQ_96] = {24, 255, 4, 1},
+	[HW_FREQ_48] = {24, 127, 4, 1},
+	[HW_FREQ_44] = {24, 293, 4, 4},
+	[HW_FREQ_32] = {24, 127, 4, 2},
+	[HW_FREQ_24] = {24, 127, 4, 3},
+	[HW_FREQ_22] = {24, 146, 4, 4},
+	[HW_FREQ_16] = {24, 127, 5, 4},
+	[HW_FREQ_12] = {24, 127, 4, 7},
+	[HW_FREQ_11] = {24, 146, 4, 9},
+	[HW_FREQ_8]  = {24, 127, 5, 9},
+    };
+    /* select divider output from codec pll */
+    SCU_DIVCON1 &= ~((1<<9) | (0xF<<5));
+    SCU_DIVCON1 |= (pcm_freq_params[freq][3]<<5);
+
+    /* Codec PLL power up */
+    SCU_PLLCON3 &= ~(1<<22);
+
+    SCU_PLLCON3 = (1<<24) |    /* Saturation behavior enable */
+                  (1<<23) |    /* Enable fast locking circuit */
+	          (pcm_freq_params[freq][0]<<16) | /* CLKR factor */
+	          (pcm_freq_params[freq][1]<<4)  | /* CLKF factor */
+	          (pcm_freq_params[freq][2]<<1) ; /* CLKOD factor */
+
+/* wait for CODEC PLL lock with 10 ms timeout
+ * datasheet states that pll lock should take approx. 0.3 ms
+ */
+    timeout = current_tick + (HZ/100);
+    while (!(SCU_STATUS & (1<<2)))
+        if (TIME_AFTER(current_tick, timeout))
+            break;
+
+}
+#endif
 
 void pcm_play_dma_init(void)
 {
@@ -195,8 +257,11 @@ void pcm_play_dma_postinit(void)
 
 void pcm_dma_apply_settings(void)
 {
-    /* I2S module runs in slave mode */
-    return;
+#ifdef CODEC_SLAVE
+    set_codec_freq(pcm_fsel);
+#endif
+
+    audiohw_set_frequency(pcm_fsel);
 }
 
 size_t pcm_get_bytes_waiting(void)

@@ -886,6 +886,7 @@ void settings_apply(bool read_disk)
                 if (global_status.font_id[SCREEN_MAIN] >= 0)
                     font_unload(global_status.font_id[SCREEN_MAIN]);
                 rc = font_load(buf);
+                font_set_ui(rc);
                 CHART2("<font_load ", global_settings.font_file);
                 global_status.font_id[SCREEN_MAIN] = rc;
                 lcd_setfont(rc);
@@ -1074,9 +1075,7 @@ void reset_setting(const struct settings_list *setting, void *var)
 
 void settings_reset(void)
 {
-    int i;
-
-    for(i=0; i<nb_settings; i++)
+    for(int i=0; i<nb_settings; i++)
         reset_setting(&settings[i], settings[i].setting);
 #if defined (HAVE_RECORDING) && CONFIG_CODEC == SWCODEC
     enc_global_settings_reset();

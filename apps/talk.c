@@ -734,7 +734,7 @@ bool talk_voice_required(void)
 #endif
 
 /* return size of voice file */
-int talk_get_buffer(void)
+static int talk_get_buffer(void)
 {
     int ret = voicefile_size;
 #if CONFIG_CODEC == SWCODEC
@@ -778,6 +778,7 @@ void talk_buffer_steal(void)
 int talk_id(int32_t id, bool enqueue)
 {
     long clipsize;
+    size_t temp;
     unsigned char* clipbuf;
     int32_t unit;
     int decimals;
@@ -789,8 +790,12 @@ int talk_id(int32_t id, bool enqueue)
         return -1;
 #endif
 
+    /* try to get audio buffer until talkbuf_init() is called */
+    if (!voicebuf)
+        voicebuf = audio_get_buffer(true, &temp);
+
     if (p_voicefile == NULL && has_voicefile)
-        load_voicefile(false, voicebuf, voicefile_size); /* reload needed */
+        load_voicefile(false, voicebuf, MIN(voicefile_size,temp)); /* reload needed */
 
     if (p_voicefile == NULL) /* still no voices? */
         return -1;

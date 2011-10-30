@@ -517,6 +517,19 @@ static const struct plugin_api rockbox_api = {
     utf8encode,
     utf8length,
     utf8seek,
+    
+    /* the buflib memory management library */
+    buflib_init,
+    buflib_available,
+    buflib_alloc,
+    buflib_alloc_ex,
+    buflib_alloc_maximum,
+    buflib_buffer_in,
+    buflib_buffer_out,
+    buflib_free,
+    buflib_shrink,
+    buflib_get_data,
+    buflib_get_name,
 
     /* sound */
     sound_set,
@@ -733,6 +746,8 @@ static const struct plugin_api rockbox_api = {
 #endif
     show_logo,
     tree_get_context,
+    tree_get_entries,
+    tree_get_entry_at,
     set_current_file,
     set_dirfilter,
 
@@ -791,26 +806,10 @@ static const struct plugin_api rockbox_api = {
 
     /* new stuff at the end, sort into place next time
        the API gets incompatible */
-    tree_get_entries,
-    tree_get_entry_at,
-    
-    /* the buflib memory management library */
-    buflib_init,
-    buflib_available,
-    buflib_alloc,
-    buflib_alloc_ex,
-    buflib_alloc_maximum,
-    buflib_buffer_in,
-    buflib_buffer_out,
-    buflib_free,
-    buflib_shrink,
-    buflib_get_data,
-    buflib_get_name,
 };
 
 int plugin_load(const char* plugin, const void* parameter)
 {
-    int rc, i;
     struct plugin_header *p_hdr;
     struct lc_header     *hdr;
 
@@ -890,7 +889,7 @@ int plugin_load(const char* plugin, const void* parameter)
     open_files = 0;
 #endif
 
-    rc = p_hdr->entry_point(parameter);
+    int rc = p_hdr->entry_point(parameter);
     
     tree_unlock_cache(tree_get_context());
     pop_current_activity();

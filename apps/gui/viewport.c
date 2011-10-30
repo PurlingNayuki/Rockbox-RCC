@@ -104,7 +104,6 @@ static void toggle_theme(enum screen_type screen, bool force)
     bool enable_event = false;
     static bool was_enabled[NB_SCREENS] = {false};
     static bool after_boot[NB_SCREENS] = {false};
-    int i;
 
     FOR_NB_SCREENS(i)
     {
@@ -224,7 +223,9 @@ static bool is_theme_enabled(enum screen_type screen)
 int viewport_get_nb_lines(const struct viewport *vp)
 {
 #ifdef HAVE_LCD_BITMAP
-    return vp->height/font_get(vp->font)->height;
+    if (!vp->line_height)
+        return vp->height/font_get(vp->font)->height;
+    return vp->height/vp->line_height;
 #else
     (void)vp;
     return 2;
@@ -233,7 +234,6 @@ int viewport_get_nb_lines(const struct viewport *vp)
 
 static void viewportmanager_redraw(void* data)
 {
-    int i;
     FOR_NB_SCREENS(i)
     {
 #ifdef HAVE_LCD_BITMAP
@@ -249,7 +249,6 @@ static void viewportmanager_redraw(void* data)
 void viewportmanager_init()
 {
 #ifdef HAVE_LCD_BITMAP
-    int i;
     FOR_NB_SCREENS(i)
     {
         theme_stack_top[i] = -1; /* the next call fixes this to 0 */
@@ -264,7 +263,6 @@ void viewportmanager_init()
 #ifdef HAVE_LCD_BITMAP
 void viewportmanager_theme_changed(const int which)
 {
-    int i;
 #ifdef HAVE_BUTTONBAR
     if (which & THEME_BUTTONBAR)
     {   /* don't handle further, the custom ui viewport ignores the buttonbar,
@@ -322,6 +320,7 @@ void viewport_set_fullscreen(struct viewport *vp,
     set_default_align_flags(vp);
 #endif
     vp->font = global_status.font_id[screen];
+    vp->line_height = 0; /* calculate from font height */
     vp->drawmode = DRMODE_SOLID;
 #if LCD_DEPTH > 1
 #ifdef HAVE_REMOTE_LCD

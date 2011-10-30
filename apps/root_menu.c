@@ -194,7 +194,6 @@ static int browser(void* param)
                         static const struct text_message message={lines, 2};
                         if(gui_syncyesno_run(&message, NULL, NULL) == YESNO_NO)
                             break;
-                        int i;
                         FOR_NB_SCREENS(i)
                             screens[i].clear_display();
 
@@ -667,6 +666,9 @@ void root_menu(void)
         (global_settings.unplug_autoresume && !headphones_inserted() ))
             next_screen = GO_TO_ROOT;
 #endif
+
+    if (global_settings.sleeptimer_on_startup)
+        set_sleep_timer(global_settings.sleeptimer_duration * 60);
 
     while (true)
     {

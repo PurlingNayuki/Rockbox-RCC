@@ -466,7 +466,6 @@ static int cat_playlist_callback(int action,
 #ifdef HAVE_LCD_BITMAP
 static void draw_slider(void)
 {
-    int i;
     FOR_NB_SCREENS(i)
     {
         struct viewport vp;
@@ -1050,6 +1049,7 @@ static bool set_backdrop(void)
             sizeof(global_settings.backdrop_file));
     settings_save();
     skin_backdrop_load_setting();
+    skin_backdrop_show(sb_get_backdrop(SCREEN_MAIN));
     return true;
 }
 MENUITEM_FUNCTION(set_backdrop_item, 0, ID2P(LANG_SET_AS_BACKDROP),

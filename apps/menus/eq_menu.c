@@ -634,7 +634,7 @@ bool eq_menu_graphical_button(void)
     int current_band, x, y, step, fast_step, min, max;
     enum eq_slider_mode mode;
     char buf[24];
-    int i, w, h, height, start_item, nb_eq_sliders[NB_SCREENS];
+    int w, h, height, start_item, nb_eq_sliders[NB_SCREENS];
     FOR_NB_SCREENS(i)
         viewportmanager_theme_enable(i, false, NULL);
 
