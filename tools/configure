@@ -3322,6 +3322,7 @@ fi
       fi
       debug="-DDEBUG"
       simulator="yes"
+      extccopts=""
       extradefines="$extradefines -DSIMULATOR"
       archosrom=""
       flash=""
