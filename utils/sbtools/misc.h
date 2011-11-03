@@ -28,7 +28,7 @@
 #define STR(a) _STR(a)
 
 #define bug(...) do { fprintf(stderr,"["__FILE__":"STR(__LINE__)"]ERROR: "__VA_ARGS__); exit(1); } while(0)
-#define bugp(a) do { perror("ERROR: "a); exit(1); } while(0)
+#define bugp(...) do { fprintf(stderr, __VA_ARGS__); perror(" "); exit(1); } while(0)
 
 #define ROUND_UP(val, round) ((((val) + (round) - 1) / (round)) * (round))
 
@@ -47,5 +47,11 @@ void add_keys(key_array_t ka, int kac);
 bool parse_key(char **str, struct crypto_key_t *key);
 void add_keys_from_file(const char *key_file);
 void print_key(struct crypto_key_t *key, bool newline);
+
+typedef char color_t[];
+
+extern color_t OFF, GREY, RED, GREEN, YELLOW, BLUE;
+void color(color_t c);
+void enable_color(bool enable);
 
 #endif /* __MISC_H__ */
