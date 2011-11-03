@@ -518,7 +518,7 @@ bool eq_menu_graphical_touchscreen(void)
     int button;
     int *setting;
     int current_band = 0;
-    int i, step, min, max, voice_unit;
+    int step, min, max, voice_unit;
     enum eq_slider_mode mode = GAIN;
     int eq_settings[15];
     struct button_bar btn_bar;
