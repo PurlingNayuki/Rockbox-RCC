@@ -835,7 +835,38 @@ static bool eq_save_preset(void)
 }
 
 /* Allows browsing of preset files */
-static struct browse_folder_info eqs = { EQS_DIR, SHOW_CFG };
+static bool eq_browse_preset(void)
+{
+    static struct browse_folder_info eqs = { EQS_DIR, SHOW_CFG };
+
+    global_settings.eq_band0_gain = 0;
+    global_settings.eq_band1_gain = 0;
+    global_settings.eq_band2_gain = 0;
+    global_settings.eq_band3_gain = 0;
+    global_settings.eq_band4_gain = 0;
+    global_settings.eq_band5_gain = 0;
+    global_settings.eq_band6_gain = 0;
+    global_settings.eq_band7_gain = 0;
+    global_settings.eq_band8_gain = 0;
+    global_settings.eq_band9_gain = 0;
+    global_settings.eq_band10_gain = 0;
+    global_settings.eq_band11_gain = 0;
+    global_settings.eq_band12_gain = 0;
+    global_settings.eq_band13_gain = 0;
+    global_settings.eq_band14_gain = 0;
+    global_settings.eq_band15_gain = 0;
+    global_settings.eq_band16_gain = 0;
+    global_settings.eq_band17_gain = 0;
+    global_settings.eq_band18_gain = 0;
+    global_settings.eq_band19_gain = 0;
+    global_settings.eq_band20_gain = 0;
+    global_settings.eq_band21_gain = 0;
+    global_settings.eq_band22_gain = 0;
+    global_settings.eq_band23_gain = 0;
+    eq_apply();
+
+    return browse_folder((void*)&eqs);
+}
 
 #ifdef HAVE_TOUCHSCREEN
 MENUITEM_FUNCTION(eq_graphical, 0, ID2P(LANG_EQUALIZER_GRAPHICAL),
@@ -848,8 +879,8 @@ MENUITEM_FUNCTION(eq_graphical, 0, ID2P(LANG_EQUALIZER_GRAPHICAL),
 #endif
 MENUITEM_FUNCTION(eq_save, 0, ID2P(LANG_EQUALIZER_SAVE),
                     (int(*)(void))eq_save_preset, NULL, NULL, Icon_NOICON);
-MENUITEM_FUNCTION(eq_browse, MENU_FUNC_USEPARAM, ID2P(LANG_EQUALIZER_BROWSE),
-                    browse_folder, (void*)&eqs, lowlatency_callback,
+MENUITEM_FUNCTION(eq_browse, 0, ID2P(LANG_EQUALIZER_BROWSE),
+                    (int(*)(void))eq_browse_preset, NULL, NULL,
                     Icon_NOICON);
 
 MAKE_MENU(equalizer_menu, ID2P(LANG_EQUALIZER), NULL, Icon_EQ,
