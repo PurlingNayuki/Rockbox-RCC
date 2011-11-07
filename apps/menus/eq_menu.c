@@ -834,11 +834,8 @@ static bool eq_save_preset(void)
     return result;
 }
 
-/* Allows browsing of preset files */
-static bool eq_browse_preset(void)
+static void eq_reset_gain(void)
 {
-    static struct browse_folder_info eqs = { EQS_DIR, SHOW_CFG };
-
     global_settings.eq_band0_gain = 0;
     global_settings.eq_band1_gain = 0;
     global_settings.eq_band2_gain = 0;
@@ -863,8 +860,17 @@ static bool eq_browse_preset(void)
     global_settings.eq_band21_gain = 0;
     global_settings.eq_band22_gain = 0;
     global_settings.eq_band23_gain = 0;
-    eq_apply();
 
+    return eq_apply();
+}
+
+/* Allows browsing of preset files */
+static bool eq_browse_preset(void)
+{
+    static struct browse_folder_info eqs = { EQS_DIR, SHOW_CFG };
+
+    /*Reset all the bands gain before loding presets*/
+    eq_reset_gain();
     return browse_folder((void*)&eqs);
 }
 
